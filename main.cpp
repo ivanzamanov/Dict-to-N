@@ -6,6 +6,7 @@
 #include<unistd.h>
 
 #include"word.h"
+#include"stack.hpp"
 
 void doWork(char* data, int size);
 
@@ -37,11 +38,5 @@ int main(int argc, const char** argv) {
 }
 
 void doWork(char* data, int size) {
-  int n = 10;
-  char** strings = (char**) calloc(n, sizeof(char*));
-  struct word w(data, 0, size);
-  for(int i=0; i<w.length; i++) {
-    printf("%c", w[i]);
-  }
-  free(strings);
+
 }
