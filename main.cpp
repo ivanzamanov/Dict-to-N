@@ -7,6 +7,7 @@
 
 #include"word.h"
 #include"stack.hpp"
+#include"autom.hpp"
 
 void doWork(char* data, int size);
 
@@ -38,5 +39,7 @@ int main(int argc, const char** argv) {
 }
 
 void doWork(char* data, int size) {
-
+  Autom a;
+  a.add(data, 0);
+  //printf("%d\n", a.get(data));
 }
