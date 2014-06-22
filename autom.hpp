@@ -19,15 +19,22 @@ struct Autom_State {
       for(int i=0; i<TR_SIZE; i++)
 	tr[i] = -1;
   }
+
+  int getHash() {
+    int result = 0;
+    for(int i=1; i<TR_SIZE+1; i++) {
+      if(tr[i] >= 0) {
+	result = (result + tr[i]) * TR_SIZE;
+      }
+    }
+  }
 };
 
 class Autom {
 public:
-  Autom():cap(4), last(0), states(0) {
-    states = (Autom_State*) realloc(states, cap * sizeof(Autom_State));
-    for(int i=0; i < cap; i++) {
-      states[i].reset();
-    }
+  Autom():cap(4), last(0) {
+    states = (Autom_State*) malloc(cap * sizeof(Autom_State));
+    states[0].reset();
   };
 
   ~Autom() {
@@ -51,6 +58,9 @@ private:
   int traverse(char* &w);
   int addTr(int src, unsigned int c, int dest);
   int getTr(int src, unsigned int c);
+
+  int findEquiv(int state);
+  void addEquiv(int state);
 };
 
 #endif

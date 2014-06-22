@@ -40,6 +40,7 @@ int main(int argc, const char** argv) {
 
 void doWork(char* data, int size) {
   Autom a;
+  //  char* w = "test";
   a.add(data, 0);
-  //printf("%d\n", a.get(data));
+  printf("%d\n", a.get(data));
 }
