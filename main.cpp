@@ -39,8 +39,8 @@ int main(int argc, const char** argv) {
 }
 
 void doWork(char* data, int size) {
-  Autom a;
+  //  Autom a;
   //  char* w = "test";
-  a.add(data, 0);
+  //a.add(data, 0);
   printf("%d\n", a.get(data));
 }

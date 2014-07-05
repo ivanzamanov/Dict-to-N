@@ -2,6 +2,7 @@
 #define __AUTOM_H__
 
 #include "stack.hpp"
+#include "hash.hpp"
 
 #define TR_SIZE 256
 
@@ -9,9 +10,10 @@ struct Autom_State {
   Autom_State() {
     reset();
   }
+
   bool isFinal;
   bool isDeleted;
-  int tr[256];
+  int tr[TR_SIZE];
 
   void reset() {
       isDeleted = 0;
@@ -22,11 +24,20 @@ struct Autom_State {
 
   int getHash() {
     int result = 0;
-    for(int i=1; i<TR_SIZE+1; i++) {
+    for(int i=0; i<TR_SIZE; i++) {
       if(tr[i] >= 0) {
 	result = (result + tr[i]) * TR_SIZE;
       }
     }
+    return result;
+  }
+
+  bool operator==(const Autom_State& other) const {
+    for(int i=0; i<TR_SIZE; i++) {
+      if(tr[i] != other.tr[i])
+	return 0;
+    }
+    return 1;
   }
 };
 
