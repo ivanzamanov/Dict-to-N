@@ -25,6 +25,10 @@ int Autom::newState() {
   return state;
 };
 
+bool Autom::equalStates(int s1, int s2) const {
+  return states[s1] == states[s2];
+}
+
 void Autom::delState(int s) {
   states[s].isDeleted = 1;
   deleted.push(s);
@@ -35,7 +39,7 @@ int Autom::addTr(int src, unsigned int c, int dest) {
   return dest;
 };
 
-int Autom::getTr(int src, unsigned int c) {
+int Autom::getTr(int src, unsigned int c) const {
   if(src < 0 || src > last || states[src].isDeleted)
     return -1;
   int dest = states[src].tr[c];
@@ -44,7 +48,7 @@ int Autom::getTr(int src, unsigned int c) {
   return dest;
 };
 
-int Autom::get(char* const w) {
+int Autom::get(char* const w) const {
   char* str = w;
   int state = 0;
   while(state != -1 && *str) {
@@ -102,12 +106,12 @@ void remove(char* const w) {
 
 // ----- hash ----
 
-static entry* findInTable(int key, int hashCode, entry** table, int cap, int& traversed) {
+static entry* findInTable(int key, int hashCode, entry** table, int cap, int& traversed, const Autom& automaton) {
   traversed = 0;
   int index = hashCode % cap;
   entry *next = table[index];
 
-  while(next != 0 && next->hash != hashCode && next->key != key) {
+  while(next != 0 && next->hash != hashCode && next->key != key && !automaton.equalStates(next->key, key)) {
     next = next->next;
     traversed++;
   }
@@ -141,7 +145,7 @@ void hash::expand() {
 
 int hash::add(int key, int hashCode) {
   int traversed;
-  entry *e = findInTable(key, hashCode, table, cap, traversed);
+  entry *e = findInTable(key, hashCode, table, cap, traversed, automaton);
 
   if(e == 0) {
     e = new entry(key, hashCode);
@@ -157,7 +161,7 @@ int hash::add(int key, int hashCode) {
 
 int hash::get(int key, int hashCode) const {
   int traversed;
-  entry *e = findInTable(key, hashCode, table, cap, traversed);
+  entry *e = findInTable(key, hashCode, table, cap, traversed, automaton);
 
   if(e != 0)
     return e->key;
@@ -168,7 +172,7 @@ int hash::get(int key, int hashCode) const {
 int hash::remove(const int key, int hashCode) {
   int index = hashCode % cap;
   entry *next = table[index];
-  if(next != 0 && next->hash == hashCode && next->key == key) {
+  if(next != 0 && next->hash == hashCode && next->key == key && !automaton.equalStates(next->key, key)) {
     table[index] = next->next;
     delete next;
     return key;
@@ -176,7 +180,7 @@ int hash::remove(const int key, int hashCode) {
 
   entry *prev = next;
   next = next->next;
-  while(next != 0 && next->hash != hashCode && next->key != key) {
+  while(next != 0 && next->hash != hashCode && next->key != key && !automaton.equalStates(next->key, key)) {
     prev = next;
     next = next->next;
   }
@@ -187,4 +191,29 @@ int hash::remove(const int key, int hashCode) {
   }
 
   return -1;
+}
+
+hash::~hash() {
+  for(int i = 0; i < cap; i++) {
+    entry* e = table[i];
+    entry* next;
+    while(e != 0) {
+      next = e->next;
+      delete e;
+      e = next;
+    }
+  }
+  delete table;
+}
+
+void hash::print() {
+  for(int i=0; i<cap; i++) {
+    printf("%d: ", i);
+    entry* e = table[i];
+    while(e != 0) {
+      printf("{k = %d, h = %d} ", e->key, e->hash);
+      e = e->next;
+    }
+    printf("\n");
+  }
 }

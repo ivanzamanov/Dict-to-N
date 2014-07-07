@@ -12,6 +12,8 @@
 void doWork(char* data, int size);
 
 int main(int argc, const char** argv) {
+  argc = 2;
+  argv[1] = "dict";
   if(argc < 2) {
     printf("No input file specified\n");
     return 1;
@@ -38,36 +40,9 @@ int main(int argc, const char** argv) {
   delete data;
 }
 
-void printHash(hash& h) {
-  for(int i=0; i<h.cap; i++) {
-    printf("%d: ", i);
-    entry* e = h.table[i];
-    while(e != 0) {
-      printf("{k = %d, h = %d} ", e->key, e->hash);
-      e = e->next;
-    }
-    printf("\n");
-  }
-}
-
 void doWork(char* data, int size) {
-  hash h;
-  const int count = 10000;
-  for(int i=0; i<count; i++) {
-    h.add(i, i);
-  }
-  printHash(h);
-  for(int i=0; i<count; i++) {
-    printf("%d\n", h.get(i, i));
-  }
-  printf("Size: %d\n", h.size);
-  for(int i=0; i<count; i++) {
-    printf("%d\n", h.remove(i, i));
-  }
-  printf("Cap: %d\n", h.cap);
-
-  // Autom a;
-  // char* w = "test";
-  // a.add(data, 0);
-  // printf("%d\n", a.get(data));
+  Autom a;
+  //  char* w = "test";
+  a.add(data, 0);
+  printf("%d\n", a.get(data));
 }

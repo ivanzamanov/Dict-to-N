@@ -5,6 +5,35 @@
 
 #define TR_SIZE 256
 
+class Autom;
+struct hash;
+struct entry;
+
+#define HASH_INIT_SIZE 7
+#define HASH_LOAD_FACTOR 0.5
+struct hash {
+  hash(const Autom& automaton):size(0), cap(HASH_INIT_SIZE), automaton(automaton) {
+    table = new entry*[cap];
+    for(int i=0; i<cap; i++)
+      table[i] = 0;
+  }
+
+  int add(const int key, int hashCode);
+  int get(const int key, int hashCode) const;
+  int remove(const int key, int hashCode);
+
+
+  ~hash();
+private:
+  void expand();
+  void print();
+
+  entry** table;
+  int size;
+  int cap;
+  const Autom& automaton;
+};
+
 struct Autom_State {
   Autom_State() {
     reset();
@@ -45,29 +74,33 @@ public:
   Autom():cap(4), last(0) {
     states = (Autom_State*) malloc(cap * sizeof(Autom_State));
     states[0].reset();
+    equivs = new hash(*this);
   };
 
   ~Autom() {
     free(states);
+    delete equivs;
   };
 
   void add(char* const w, int n);
   void remove(char* const w);
-  int get(char* const w);
+  int get(char* const w) const;
+
+  bool equalStates(int s1, int s2) const;
 
 private:
   int cap;
   int last;
   Autom_State* states;
-
   Stack deleted;
+  hash* equivs;
 
   void expand();
   int newState();
   void delState(int s);
   int traverse(char* &w);
   int addTr(int src, unsigned int c, int dest);
-  int getTr(int src, unsigned int c);
+  int getTr(int src, unsigned int c) const;
 
   int findEquiv(int state);
   void addEquiv(int state);
@@ -81,25 +114,5 @@ struct entry {
   entry* next;
 };
 
-#define HASH_INIT_SIZE 7
-#define HASH_LOAD_FACTOR 0.5
-struct hash {
-  hash():size(0), cap(HASH_INIT_SIZE) {
-    table = new entry*[cap];
-    for(int i=0; i<cap; i++)
-      table[i] = 0;
-  }
-
-  int add(const int key, int hashCode);
-  int get(const int key, int hashCode) const;
-  int remove(const int key, int hashCode);
-
-  //private:
-  void expand();
-
-  entry** table;
-  int size;
-  int cap;
-};
 
 #endif
