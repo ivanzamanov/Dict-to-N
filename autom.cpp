@@ -123,11 +123,15 @@ static void addToTable(entry* e, entry** table, int cap) {
 void hash::expand() {
   int new_cap = (cap + 1) * 2 - 1;
   entry** new_table = new entry*[new_cap];
+  for(int i=0; i<new_cap; i++)
+    new_table[i] = 0;
   for(int i = 0; i < cap; i++) {
     entry* e = table[i];
+    entry* next;
     while(e != 0) {
+      next = e->next;
       addToTable(e, new_table, new_cap);
-      e = e->next;
+      e = next;
     }
   }
   delete table;
@@ -162,13 +166,25 @@ int hash::get(int key, int hashCode) const {
 }
 
 int hash::remove(const int key, int hashCode) {
-  return 0;
-  int traversed;
   int index = hashCode % cap;
   entry *next = table[index];
+  if(next != 0 && next->hash == hashCode && next->key == key) {
+    table[index] = next->next;
+    delete next;
+    return key;
+  }
 
+  entry *prev = next;
+  next = next->next;
   while(next != 0 && next->hash != hashCode && next->key != key) {
+    prev = next;
     next = next->next;
-    traversed++;
-  }  
+  }
+  if(next != 0) {
+    prev->next = next->next;
+    delete next;
+    return key;
+  }
+
+  return -1;
 }

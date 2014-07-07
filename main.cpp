@@ -38,16 +38,30 @@ int main(int argc, const char** argv) {
   delete data;
 }
 
+void printHash(hash& h) {
+  for(int i=0; i<h.cap; i++) {
+    printf("%d: ", i);
+    entry* e = h.table[i];
+    while(e != 0) {
+      printf("{k = %d, h = %d} ", e->key, e->hash);
+      e = e->next;
+    }
+    printf("\n");
+  }
+}
+
 void doWork(char* data, int size) {
   hash h;
-  for(int i=0; i<10000; i++) {
+  const int count = 10000;
+  for(int i=0; i<count; i++) {
     h.add(i, i);
   }
-  for(int i=0; i<10000; i++) {
+  printHash(h);
+  for(int i=0; i<count; i++) {
     printf("%d\n", h.get(i, i));
   }
   printf("Size: %d\n", h.size);
-  for(int i=0; i<10000; i++) {
+  for(int i=0; i<count; i++) {
     printf("%d\n", h.remove(i, i));
   }
   printf("Cap: %d\n", h.cap);

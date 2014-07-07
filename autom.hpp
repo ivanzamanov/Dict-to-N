@@ -81,11 +81,13 @@ struct entry {
   entry* next;
 };
 
-#define HASH_INIT_SIZE 8
+#define HASH_INIT_SIZE 7
 #define HASH_LOAD_FACTOR 0.5
 struct hash {
   hash():size(0), cap(HASH_INIT_SIZE) {
     table = new entry*[cap];
+    for(int i=0; i<cap; i++)
+      table[i] = 0;
   }
 
   int add(const int key, int hashCode);
