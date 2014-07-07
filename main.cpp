@@ -39,8 +39,21 @@ int main(int argc, const char** argv) {
 }
 
 void doWork(char* data, int size) {
-  //  Autom a;
-  //  char* w = "test";
-  //a.add(data, 0);
-  printf("%d\n", a.get(data));
+  hash h;
+  for(int i=0; i<10000; i++) {
+    h.add(i, i);
+  }
+  for(int i=0; i<10000; i++) {
+    printf("%d\n", h.get(i, i));
+  }
+  printf("Size: %d\n", h.size);
+  for(int i=0; i<10000; i++) {
+    printf("%d\n", h.remove(i, i));
+  }
+  printf("Cap: %d\n", h.cap);
+
+  // Autom a;
+  // char* w = "test";
+  // a.add(data, 0);
+  // printf("%d\n", a.get(data));
 }

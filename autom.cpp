@@ -81,7 +81,7 @@ void Autom::add(char* const w, int n) {
   int i=0;
   while(!cloned.isEmpty()) {
     state = cloned.peek();
-    int equiv = findEquiv(state);
+    int equiv = 0;//findEquiv(state);
     if(equiv == -1)
       break;
     cloned.pop();
@@ -91,11 +91,84 @@ void Autom::add(char* const w, int n) {
   }
 
   while(!cloned.isEmpty()) {
-    addEquiv(equivs.add(cloned.pop()));
+    //    addEquiv(equivs.add(cloned.pop()));
   }
   states[state].isFinal = 1;
 }
 
 void remove(char* const w) {
 
+}
+
+// ----- hash ----
+
+static entry* findInTable(int key, int hashCode, entry** table, int cap, int& traversed) {
+  traversed = 0;
+  int index = hashCode % cap;
+  entry *next = table[index];
+
+  while(next != 0 && next->hash != hashCode && next->key != key) {
+    next = next->next;
+    traversed++;
+  }
+  return next;
+}
+
+static void addToTable(entry* e, entry** table, int cap) {
+  int index = e->hash % cap;
+  e->next = table[index];
+  table[index] = e;
+}
+
+void hash::expand() {
+  int new_cap = (cap + 1) * 2 - 1;
+  entry** new_table = new entry*[new_cap];
+  for(int i = 0; i < cap; i++) {
+    entry* e = table[i];
+    while(e != 0) {
+      addToTable(e, new_table, new_cap);
+      e = e->next;
+    }
+  }
+  delete table;
+  table = new_table;
+  cap = new_cap;
+}
+
+int hash::add(int key, int hashCode) {
+  int traversed;
+  entry *e = findInTable(key, hashCode, table, cap, traversed);
+
+  if(e == 0) {
+    e = new entry(key, hashCode);
+    addToTable(e, table, cap);
+    size++;
+  } // Else, return the equivalent found
+
+  if(traversed > HASH_LOAD_FACTOR * cap) {
+    expand();
+  }
+  return e->key;
+}
+
+int hash::get(int key, int hashCode) const {
+  int traversed;
+  entry *e = findInTable(key, hashCode, table, cap, traversed);
+
+  if(e != 0)
+    return e->key;
+  else
+    return -1;
+}
+
+int hash::remove(const int key, int hashCode) {
+  return 0;
+  int traversed;
+  int index = hashCode % cap;
+  entry *next = table[index];
+
+  while(next != 0 && next->hash != hashCode && next->key != key) {
+    next = next->next;
+    traversed++;
+  }  
 }

@@ -2,7 +2,6 @@
 #define __AUTOM_H__
 
 #include "stack.hpp"
-#include "hash.hpp"
 
 #define TR_SIZE 256
 
@@ -72,6 +71,33 @@ private:
 
   int findEquiv(int state);
   void addEquiv(int state);
+};
+
+struct entry {
+  entry(const int key, int hash):key(key),hash(hash), next(0) { };
+
+  int key;
+  int hash;
+  entry* next;
+};
+
+#define HASH_INIT_SIZE 8
+#define HASH_LOAD_FACTOR 0.5
+struct hash {
+  hash():size(0), cap(HASH_INIT_SIZE) {
+    table = new entry*[cap];
+  }
+
+  int add(const int key, int hashCode);
+  int get(const int key, int hashCode) const;
+  int remove(const int key, int hashCode);
+
+  //private:
+  void expand();
+
+  entry** table;
+  int size;
+  int cap;
 };
 
 #endif
