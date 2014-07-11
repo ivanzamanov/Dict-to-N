@@ -26,3 +26,6 @@
 # Makefile generated config
 *.d
 dict
+
+# .dot files
+*.dot

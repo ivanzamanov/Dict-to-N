@@ -2,6 +2,7 @@
 #include<cstdio>
 
 #include"autom.hpp"
+#include"dot.hpp"
 
 void Autom::expand() {
   int newSize = cap * 2;
@@ -71,6 +72,18 @@ int Autom::traverse(char* &w) {
   return state;
 }
 
+int Autom::findEquiv(int state) {
+  return equivs->get(state, states[state].getHash());
+}
+
+void Autom::addEquiv(int state) {
+  equivs->add(state, states[state].getHash());
+}
+
+void Autom::removeEquiv(int state) {
+  equivs->remove(state, states[state].getHash());
+}
+
 void Autom::add(char* const w, int n) {
   char* str = w;
   Stack cloned;
@@ -84,19 +97,22 @@ void Autom::add(char* const w, int n) {
 
   int i=0;
   while(!cloned.isEmpty()) {
+    i++;
     state = cloned.peek();
-    int equiv = 0;//findEquiv(state);
+    int equiv = findEquiv(state);
     if(equiv == -1)
       break;
     cloned.pop();
     int prev = cloned.peek();
+    removeEquiv(prev);
     addTr(prev, *(str - i), equiv);
+    addEquiv(prev);
     delState(state);
   }
 
-  while(!cloned.isEmpty()) {
-    //    addEquiv(equivs.add(cloned.pop()));
-  }
+  while(!cloned.isEmpty())
+    addEquiv(cloned.pop());
+
   states[state].isFinal = 1;
 }
 
@@ -104,64 +120,85 @@ void remove(char* const w) {
 
 }
 
+void Autom::print(const char* filePath) {
+  DotPrinter p(filePath);
+  p.start();
+  for(int i=0; i<last; i++) {
+    Autom_State& state = states[i];
+    if(state.isDeleted)
+      continue;
+    for(unsigned int j=0; j<TR_SIZE; j++) {
+      if(state.tr[j] >= 0)
+	p.edge(i, j, state.tr[j]);
+    }
+  }
+  p.end();
+}
+
 // ----- hash ----
 
-static entry* findInTable(int key, int hashCode, entry** table, int cap, int& traversed, const Autom& automaton) {
-  traversed = 0;
+static entry* findInTable(int key, int hashCode, entry** table, int cap, const Autom& automaton) {
   int index = hashCode % cap;
   entry *next = table[index];
 
   while(next != 0 && next->hash != hashCode && next->key != key && !automaton.equalStates(next->key, key)) {
     next = next->next;
-    traversed++;
   }
   return next;
 }
 
-static void addToTable(entry* e, entry** table, int cap) {
-  int index = e->hash % cap;
+static void addToTable(entry* e, entry** table, int index, int* sizes) {
   e->next = table[index];
+  sizes[index]++;
   table[index] = e;
 }
 
 void hash::expand() {
   int new_cap = (cap + 1) * 2 - 1;
   entry** new_table = new entry*[new_cap];
-  for(int i=0; i<new_cap; i++)
+  int* new_sizes = new int[new_cap];
+  for(int i=0; i<new_cap; i++) {
     new_table[i] = 0;
+    new_sizes[i] = 0;
+  }
   for(int i = 0; i < cap; i++) {
     entry* e = table[i];
     entry* next;
     while(e != 0) {
       next = e->next;
-      addToTable(e, new_table, new_cap);
+      int indexInTable = e->hash % new_cap;
+      addToTable(e, new_table, indexInTable, new_sizes);
       e = next;
     }
   }
   delete table;
   table = new_table;
+  delete sizes;
+  sizes = new_sizes;
   cap = new_cap;
 }
 
+void hash::checkSize(int atIndex) {
+  size++;
+  if(sizes[atIndex] > HASH_LOAD_FACTOR * cap)
+    expand();
+}
+
 int hash::add(int key, int hashCode) {
-  int traversed;
-  entry *e = findInTable(key, hashCode, table, cap, traversed, automaton);
+  entry *e = findInTable(key, hashCode, table, cap, automaton);
 
   if(e == 0) {
     e = new entry(key, hashCode);
-    addToTable(e, table, cap);
-    size++;
+    int indexInTable = e->hash % cap;
+    addToTable(e, table, indexInTable, sizes);
+    checkSize(indexInTable);
   } // Else, return the equivalent found
 
-  if(traversed > HASH_LOAD_FACTOR * cap) {
-    expand();
-  }
   return e->key;
 }
 
 int hash::get(int key, int hashCode) const {
-  int traversed;
-  entry *e = findInTable(key, hashCode, table, cap, traversed, automaton);
+  entry *e = findInTable(key, hashCode, table, cap, automaton);
 
   if(e != 0)
     return e->key;
@@ -172,6 +209,8 @@ int hash::get(int key, int hashCode) const {
 int hash::remove(const int key, int hashCode) {
   int index = hashCode % cap;
   entry *next = table[index];
+  if(next == 0)
+    return -1;
   if(next != 0 && next->hash == hashCode && next->key == key && !automaton.equalStates(next->key, key)) {
     table[index] = next->next;
     delete next;

@@ -6,7 +6,6 @@
 #define TR_SIZE 256
 
 class Autom;
-struct hash;
 struct entry;
 
 #define HASH_INIT_SIZE 7
@@ -14,21 +13,26 @@ struct entry;
 struct hash {
   hash(const Autom& automaton):size(0), cap(HASH_INIT_SIZE), automaton(automaton) {
     table = new entry*[cap];
-    for(int i=0; i<cap; i++)
+    sizes = new int[cap];
+    for(int i=0; i<cap; i++) {
       table[i] = 0;
+      sizes[i] = 0;
+    }
   }
 
   int add(const int key, int hashCode);
   int get(const int key, int hashCode) const;
   int remove(const int key, int hashCode);
 
+  void print();
 
   ~hash();
 private:
+  void checkSize(int atIndex);
   void expand();
-  void print();
 
   entry** table;
+  int* sizes;
   int size;
   int cap;
   const Autom& automaton;
@@ -88,6 +92,8 @@ public:
 
   bool equalStates(int s1, int s2) const;
 
+  void print(const char* filePath);
+
 private:
   int cap;
   int last;
@@ -104,6 +110,7 @@ private:
 
   int findEquiv(int state);
   void addEquiv(int state);
+  void removeEquiv(int state);
 };
 
 struct entry {
