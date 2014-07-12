@@ -5,8 +5,9 @@
 #include<fcntl.h>
 #include<unistd.h>
 
+#include<string>
+
 #include"word.h"
-#include"stack.hpp"
 #include"autom.hpp"
 
 void doWork(char* data, int size);
@@ -42,9 +43,12 @@ int main(int argc, const char** argv) {
 
 void doWork(char* data, int size) {
   Autom a;
-  a.add("01", 101);
-  a.add("10", 0);
-  //  a.add("1111", 0);
+  a.add("1010", 0);
+  a.add("111", 0);
+  // a.add("1010", 0);
+  // a.add("0101", 101);
+  // a.add("1110", 0);
 
-  a.print("dot.dot");
+  a.printDot("dot.dot");
+  a.printWords();
 }

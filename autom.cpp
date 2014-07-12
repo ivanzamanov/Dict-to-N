@@ -49,8 +49,8 @@ int Autom::getTr(int src, unsigned int c) const {
   return dest;
 };
 
-int Autom::get(char* const w) const {
-  char* str = w;
+int Autom::get(const char* const w) const {
+  const char* str = w;
   int state = 0;
   while(state != -1 && *str) {
     state = getTr(state, *str);
@@ -59,7 +59,7 @@ int Autom::get(char* const w) const {
   return state != -1 && states[state].isFinal;
 }
 
-int Autom::traverse(char* &w) {
+int Autom::traverse(const char* &w) {
   int state = 0;
   int next = 0;
   while(next != -1 && *w) {
@@ -84,49 +84,61 @@ void Autom::removeEquiv(int state) {
   equivs->remove(state, states[state].getHash());
 }
 
-void Autom::add(char* const w, int n) {
-  char* str = w;
-  Stack cloned;
+void Autom::add(const char* const w, int n) {
+  const char* str = w;
+  IntStack cloned;
   int state = traverse(str);
+  // Bottom of the stack - the last state
+  // from the starting machine
+  removeEquiv(state);
+  cloned.push(state);
   while(*str != 0) {
+    // Add new states until minimal except
+    // in the new word
     int nState = newState();
-    state = addTr(state, *str, nState);
-    cloned.push(state);
+    addTr(state, *str, nState);
+    cloned.push(nState);
+    state = nState;
     str++;
   }
+  // Last added state - final so we'll
+  // recognize the word
+  states[cloned.peek()].isFinal = 1;
 
+  // Offset from the end of the string
   int i=0;
-  while(!cloned.isEmpty()) {
+  // Traversing the newly added states backwards
+  while(cloned.size() > 1) {
     i++;
-    state = cloned.peek();
-    int equiv = findEquiv(state);
+    // Look for an equivalent state
+    int equiv = findEquiv(cloned.peek());
     if(equiv == -1)
-      break;
-    cloned.pop();
-    int prev = cloned.peek();
-    removeEquiv(prev);
-    addTr(prev, *(str - i), equiv);
-    addEquiv(prev);
+      break; // Not found -> no more will be found
+    // Found an equivalent, add a transition
+    // from the previous state in the chain to the equiv.
+    // and delete the obsoleted state
+    state = cloned.pop();
     delState(state);
+    addTr(cloned.peek(), *(str - i), equiv);
   }
-
+  // All remaining states, including the bottom,
+  // need to be added to the final machine
   while(!cloned.isEmpty())
     addEquiv(cloned.pop());
-
-  states[state].isFinal = 1;
 }
 
-void remove(char* const w) {
+void Autom::remove(const char* const w) {
 
 }
 
-void Autom::print(const char* filePath) {
+void Autom::printDot(const char* filePath) {
   DotPrinter p(filePath);
   p.start();
   for(int i=0; i<last; i++) {
     Autom_State& state = states[i];
     if(state.isDeleted)
       continue;
+    p.node(i, state.isFinal);
     for(unsigned int j=0; j<TR_SIZE; j++) {
       if(state.tr[j] >= 0)
 	p.edge(i, j, state.tr[j]);
@@ -135,15 +147,23 @@ void Autom::print(const char* filePath) {
   p.end();
 }
 
+void Autom::printWords() {
+  
+}
+
 // ----- hash ----
 
 static entry* findInTable(int key, int hashCode, entry** table, int cap, const Autom& automaton) {
   int index = hashCode % cap;
   entry *next = table[index];
 
-  while(next != 0 && next->hash != hashCode && next->key != key && !automaton.equalStates(next->key, key)) {
-    next = next->next;
+  while(next != 0) {
+    if(next->hash == hashCode && (next->key == key || automaton.equalStates(next->key, key))) {
+	return next;
+      }
+      next = next->next;
   }
+
   return next;
 }
 

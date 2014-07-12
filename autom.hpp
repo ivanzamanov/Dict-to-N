@@ -1,9 +1,8 @@
 #ifndef __AUTOM_H__
 #define __AUTOM_H__
 
-#include "stack.hpp"
-
 #define TR_SIZE 256
+#include "stack.hpp"
 
 class Autom;
 struct entry;
@@ -86,25 +85,26 @@ public:
     delete equivs;
   };
 
-  void add(char* const w, int n);
-  void remove(char* const w);
-  int get(char* const w) const;
+  void add(const char* const w, int n);
+  void remove(const char* const w);
+  int get(const char* const w) const;
 
   bool equalStates(int s1, int s2) const;
 
-  void print(const char* filePath);
+  void printDot(const char* filePath = 0);
+  void printWords();
 
 private:
   int cap;
   int last;
   Autom_State* states;
-  Stack deleted;
+  IntStack deleted;
   hash* equivs;
 
   void expand();
   int newState();
   void delState(int s);
-  int traverse(char* &w);
+  int traverse(const char* &w);
   int addTr(int src, unsigned int c, int dest);
   int getTr(int src, unsigned int c) const;
 
@@ -120,6 +120,5 @@ struct entry {
   int hash;
   entry* next;
 };
-
 
 #endif

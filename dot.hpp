@@ -9,6 +9,7 @@ struct DotPrinter {
   void start();
   void end();
   void edge(int src, char label, int  dest);
+  void node(int id, bool isFinal);
 private:
   FILE* file;
 };
