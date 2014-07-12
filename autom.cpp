@@ -134,7 +134,7 @@ void Autom::remove(const char* const w) {
 void Autom::printDot(const char* filePath) {
   DotPrinter p(filePath);
   p.start();
-  for(int i=0; i<last; i++) {
+  for(int i=0; i<=last; i++) {
     Autom_State& state = states[i];
     if(state.isDeleted)
       continue;

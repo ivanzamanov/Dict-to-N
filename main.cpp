@@ -32,7 +32,7 @@ int main(int argc, const char** argv) {
     return 1;
   }
   long int size = fileStat.st_size;
-  printf("Size: %ld\n", size);
+  // printf("Size: %ld\n", size);
 
   char* data = new char[size + 1];
   read(fd, data, size);
@@ -45,9 +45,8 @@ void doWork(char* data, int size) {
   Autom a;
   a.add("1010", 0);
   a.add("111", 0);
-  // a.add("1010", 0);
-  // a.add("0101", 101);
-  // a.add("1110", 0);
+  //  a.add("0101", 101);
+  a.add("1110", 0);
 
   a.printDot("dot.dot");
   a.printWords();

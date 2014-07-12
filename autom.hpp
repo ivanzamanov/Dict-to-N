@@ -64,6 +64,8 @@ struct Autom_State {
   }
 
   bool operator==(const Autom_State& other) const {
+    if(isFinal != other.isFinal)
+      return 0;
     for(int i=0; i<TR_SIZE; i++) {
       if(tr[i] != other.tr[i])
 	return 0;
