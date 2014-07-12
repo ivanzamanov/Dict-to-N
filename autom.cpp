@@ -4,7 +4,7 @@
 #include"autom.hpp"
 #include"dot.hpp"
 
-void Autom::expand() {
+void Autom::expandCapacity() {
   int newSize = cap * 2;
   states = (Autom_State*) realloc(states, newSize * sizeof(Autom_State));
   for(int i=cap; i < newSize; i++) {
@@ -17,7 +17,7 @@ int Autom::newState() {
   int state;
   if(deleted.isEmpty()) {
     if(last == cap - 1)
-      expand();
+      expandCapacity();
     state = ++last;
   } else {
     state = deleted.pop();
@@ -36,7 +36,7 @@ void Autom::delState(int s) {
 }
 
 int Autom::addTr(int src, unsigned int c, int dest) {
-  states[src].tr[c] = dest;
+  states[src].addTr(c, dest);
   return dest;
 };
 
@@ -59,19 +59,6 @@ int Autom::get(const char* const w) const {
   return state != -1 && states[state].isFinal;
 }
 
-int Autom::traverse(const char* &w) {
-  int state = 0;
-  int next = 0;
-  while(next != -1 && *w) {
-    next = getTr(next, *w);
-    if(next != -1) {
-      state = next;
-      w++;
-    }
-  }
-  return state;
-}
-
 int Autom::findEquiv(int state) {
   return equivs->get(state, states[state].getHash());
 }
@@ -84,10 +71,18 @@ void Autom::removeEquiv(int state) {
   equivs->remove(state, states[state].getHash());
 }
 
-void Autom::add(const char* const w, int n) {
-  const char* str = w;
-  IntStack cloned;
-  int state = traverse(str);
+void Autom::expand(IntStack& cloned, const char* &str) {
+  int state;
+  int next = 0;
+  int prev = 0;
+  while(next != -1 && *str) {
+    prev = next;
+    next = getTr(prev, *str);
+    if(next != -1) {
+      state = next;
+      str++;
+    }
+  }
   // Bottom of the stack - the last state
   // from the starting machine
   removeEquiv(state);
@@ -104,9 +99,12 @@ void Autom::add(const char* const w, int n) {
   // Last added state - final so we'll
   // recognize the word
   states[cloned.peek()].isFinal = 1;
+}
 
+void Autom::reduce(IntStack& cloned, const char* &str) {
   // Offset from the end of the string
-  int i=0;
+  int i = 0;
+  int state;
   // Traversing the newly added states backwards
   while(cloned.size() > 1) {
     i++;
@@ -127,8 +125,19 @@ void Autom::add(const char* const w, int n) {
     addEquiv(cloned.pop());
 }
 
-void Autom::remove(const char* const w) {
+void Autom::add(const char* const w, int n) {
+  const char* str = w;
+  IntStack cloned;
+  expand(cloned, str);
+  reduce(cloned, str);
+}
 
+void Autom::remove(const char* const w) {
+  const char* str = w;
+  IntStack cloned;
+  expand(cloned, str);
+  while(!cloned.isEmpty())
+    delState(cloned.pop());
 }
 
 void Autom::printDot(const char* filePath) {
@@ -151,7 +160,9 @@ void Autom::printWords() {
   
 }
 
+// -----
 // ----- hash ----
+// -----
 
 static entry* findInTable(int key, int hashCode, entry** table, int cap, const Autom& automaton) {
   int index = hashCode % cap;

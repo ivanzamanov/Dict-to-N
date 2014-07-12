@@ -5,7 +5,9 @@
 #include "stack.hpp"
 
 class Autom;
+struct Autom_State;
 struct entry;
+struct hash;
 
 #define HASH_INIT_SIZE 7
 #define HASH_LOAD_FACTOR 0.5
@@ -38,19 +40,32 @@ private:
 };
 
 struct Autom_State {
-  Autom_State() {
-    reset();
-  }
+  Autom_State() { reset(); }
 
   bool isFinal;
   bool isDeleted;
   int tr[TR_SIZE];
+  int size;
+
+  void addTr(unsigned int c, int dest) {
+    if(tr[c] == -1)
+      size++;
+    tr[c] = dest;
+  }
+
+  void removeTr(unsigned int c) {
+    if(tr[c] == -1)
+      return;
+    size--;
+    tr[c] = -1;
+  }
 
   void reset() {
-      isDeleted = 0;
-      isFinal = 0;
-      for(int i=0; i<TR_SIZE; i++)
-	tr[i] = -1;
+    size = 0;
+    isDeleted = 0;
+    isFinal = 0;
+    for(int i=0; i<TR_SIZE; i++)
+      tr[i] = -1;
   }
 
   int getHash() {
@@ -103,16 +118,19 @@ private:
   IntStack deleted;
   hash* equivs;
 
-  void expand();
-  int newState();
-  void delState(int s);
-  int traverse(const char* &w);
-  int addTr(int src, unsigned int c, int dest);
-  int getTr(int src, unsigned int c) const;
+  inline int clone(int state, unsigned int c);
+  inline void expandCapacity();
+  inline int newState();
+  inline void delState(int s);
+  inline int addTr(int src, unsigned int c, int dest);
+  inline int getTr(int src, unsigned int c) const;
 
-  int findEquiv(int state);
-  void addEquiv(int state);
-  void removeEquiv(int state);
+  inline void expand(IntStack& cloned, const char* &str);
+  inline void reduce(IntStack& cloned, const char* &str);
+
+  inline int findEquiv(int state);
+  inline void addEquiv(int state);
+  inline void removeEquiv(int state);
 };
 
 struct entry {
