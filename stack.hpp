@@ -1,6 +1,8 @@
 #ifndef __STACK__H__
 #define __STACK__H__
 
+#include<cstdio>
+
 template<class T>
 class Stack {
 public:
@@ -14,6 +16,8 @@ public:
   T peek() const;
   bool isEmpty() const;
   int size() const;
+
+  void print() const;
 
 private:
   T* data;
@@ -80,6 +84,13 @@ bool Stack<T>::isEmpty() const {
 template<class T>
 int Stack<T>::size() const {
   return n+1;
+}
+
+template<class T>
+void Stack<T>::print() const {
+  for(int i=n; i >= 0; i--)
+    printf("%d ", data[i]);
+  printf("\n");
 }
 
 #endif

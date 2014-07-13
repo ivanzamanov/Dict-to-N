@@ -8,6 +8,7 @@ class Autom;
 struct Autom_State;
 struct entry;
 struct hash;
+struct TraverseResult;
 
 #define HASH_INIT_SIZE 7
 #define HASH_LOAD_FACTOR 0.5
@@ -45,23 +46,39 @@ struct Autom_State {
   bool isFinal;
   bool isDeleted;
   int tr[TR_SIZE];
-  int size;
 
-  void addTr(unsigned int c, int dest) {
-    if(tr[c] == -1)
-      size++;
+  int outgoing;
+  int incoming;
+
+  inline void trAdded() {
+    incoming++;
+  }
+
+  inline void trRemoved() {
+    incoming--;
+  }
+
+  inline int getTr(unsigned int c) {
+    return tr[c];
+  }
+
+  inline void addTr(unsigned int c, int dest) {
+    if(dest == -1) // If this is a delete
+      outgoing--;
+    else if(tr[c] == -1) // If this is not a replace
+      outgoing++;
+
     tr[c] = dest;
   }
 
-  void removeTr(unsigned int c) {
-    if(tr[c] == -1)
-      return;
-    size--;
+  inline void removeTr(unsigned int c) {
+    outgoing--;
     tr[c] = -1;
   }
 
-  void reset() {
-    size = 0;
+  inline void reset() {
+    incoming = 0;
+    outgoing = 0;
     isDeleted = 0;
     isFinal = 0;
     for(int i=0; i<TR_SIZE; i++)
@@ -94,6 +111,7 @@ public:
   Autom():cap(4), last(0) {
     states = (Autom_State*) malloc(cap * sizeof(Autom_State));
     states[0].reset();
+    states[0].incoming = 1;
     equivs = new hash(*this);
   };
 
@@ -102,7 +120,7 @@ public:
     delete equivs;
   };
 
-  void add(const char* const w, int n);
+  void add(const char* const w, int n = 1);
   void remove(const char* const w);
   int get(const char* const w) const;
 
@@ -118,14 +136,15 @@ private:
   IntStack deleted;
   hash* equivs;
 
-  inline int clone(int state, unsigned int c);
+  inline int clone(int src, unsigned int c, bool cloneFinal);
   inline void expandCapacity();
   inline int newState();
   inline void delState(int s);
   inline int addTr(int src, unsigned int c, int dest);
   inline int getTr(int src, unsigned int c) const;
+  inline void removeTr(int src, unsigned int c);
 
-  inline void expand(IntStack& cloned, const char* &str);
+  inline TraverseResult expand(IntStack& cloned, const char* &str, bool forDelete = 0);
   inline void reduce(IntStack& cloned, const char* &str);
 
   inline int findEquiv(int state);
@@ -139,6 +158,11 @@ struct entry {
   int key;
   int hash;
   entry* next;
+};
+
+struct TraverseResult {
+  TraverseResult():lastBranch(-1) { };
+  int lastBranch;
 };
 
 #endif
