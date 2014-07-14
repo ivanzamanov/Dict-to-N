@@ -1,5 +1,7 @@
 #include<cstdlib>
 #include<cstdio>
+#include<unordered_map>
+#include<functional>
 
 #include"autom.hpp"
 #include"dot.hpp"
@@ -230,6 +232,85 @@ void Autom::printDot(const char* filePath) {
 
 void Autom::printWords() {
   
+}
+
+struct Check {
+  Check(int destClass, unsigned int c)
+    :destClass(destClass), c(c) { };
+  int destClass;
+  unsigned int c;
+  bool operator==(Check& other) {
+    return other.destClass == destClass && other.c == c;
+  };
+};
+
+struct CheckHash
+{
+  std::size_t operator()(const Check &c) const
+  {
+    std::size_t x = c.destClass * c.c;
+    return x;
+  }
+};
+
+struct CheckEq
+{
+  bool operator()(const Check &c1, const Check &c2) const
+  {
+    return c1.c == c2.c && c1.destClass == c2.destClass;
+  }
+};
+
+typedef std::unordered_map<Check, int, CheckHash, CheckEq> CheckHashMap;
+void Autom::checkMinimal() {
+  int* classes = new int[last + 1];
+  for(int i=0; i<=last; i++) {
+    classes[i] = this->states[i].isFinal;
+  }
+  //  states = (int*)realloc(states, sizeof(int) * j);
+  int cls = 0;
+  int newCls = 2;
+  while(cls < newCls) {
+    for(unsigned int i=0; i < TR_SIZE; i++) {
+      CheckHashMap m;
+      int firstState = 0;
+      // find the first state of this class
+      while(classes[firstState] != cls) {
+	firstState++;
+      }
+	  
+      Autom_State& first = states[0];
+      int firstDest = first.getTr(i);
+      int firstDestClass = firstDest == -1 ? -1 : classes[firstDest];
+      // for all other states, check if they have the same destination class
+      // as the first
+      for(int s = 1; s <= last; s++) {
+	Autom_State& state = states[s];
+	if(state.isDeleted)
+	  continue;
+	int dest = state.getTr(i);
+	int destCls;
+	if(dest >= 0)
+	  destCls = classes[dest];
+	else
+	  destCls = ++newCls;
+	std::pair<CheckHashMap::iterator,bool> p = m.emplace(Check(destCls, i), newCls);
+	if(p.second) {
+	  classes[s] = newCls;
+	  newCls++;
+	} else {
+	  // partition to new class
+	  CheckHashMap::iterator it = p.first;
+	  const Check check = (*it).first;
+	  classes[s] = check.destClass;
+	}
+      }
+    }
+    cls++;
+  }
+
+  printf("Minimal: %d\n", newCls - 1 == last+1);
+  delete states;
 }
 
 // -----

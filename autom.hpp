@@ -128,6 +128,7 @@ public:
 
   void printDot(const char* filePath = 0);
   void printWords();
+  void checkMinimal();
 
 private:
   int cap;
