@@ -40,25 +40,24 @@ int main(int argc, const char** argv) {
 
 void doWork(char* data, int size) {
   Autom a;
-  // a.add("011");
-  // a.add("010");
-  // a.remove("011");
   a.add("011");
-  a.checkMinimal();
-  // a.add("0111");
-  // a.add("11111");
-  // a.add("0101");
-  // a.remove("0111");
-  // a.add("01110");
+  a.add("010");
+  a.remove("011");
+  a.add("011");
+  a.add("0111");
+  a.add("11111");
+  a.add("0101");
+  a.remove("0111");
+  a.add("01110");
 
-  // a.add("10");
-  // a.remove("01110");
-  // a.add("011");
-  // a.add("1100");
-  // a.add("11");
+  a.add("10");
+  a.remove("01110");
+  a.add("011");
+  a.add("1100");
+  a.add("11");
   
-  // a.remove("0101");
-  // a.remove("11111");
+  a.remove("0101");
+  a.remove("11111");
 
   a.printDot("dot.dot");
   a.printWords();
