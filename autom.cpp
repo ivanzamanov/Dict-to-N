@@ -47,13 +47,12 @@ void Autom::delState(int s) {
   }
 }
 
-int Autom::addTr(int src, unsigned int c, int dest) {
-  bool isEquiv = findEquiv(src);
-  if(isEquiv)
+int Autom::addTr(int src, unsigned int c, int dest, bool equiv) {
+  if(equiv)
     removeEquiv(src);
   states[src].addTr(c, dest);
   states[dest].trAdded();
-  if(isEquiv)
+  if(equiv)
     addEquiv(src);
   return dest;
 };
@@ -67,18 +66,17 @@ int Autom::getTr(int src, unsigned int c) const {
   return dest;
 };
 
-void Autom::removeTr(int src, unsigned int c) {
+void Autom::removeTr(int src, unsigned int c, bool equiv) {
   int dest = getTr(src, c);
   if(dest == -1)
     return;
-  bool isEquiv = findEquiv(src);
-  if(isEquiv)
+  if(equiv)
     removeEquiv(src);
   states[src].removeTr(c);
   states[dest].trRemoved();
   if(states[dest].incoming == 0)
     delState(dest);
-  if(isEquiv)
+  if(equiv)
     addEquiv(src);
 }
 
@@ -93,38 +91,52 @@ int Autom::get(const char* const w) const {
 }
 
 int Autom::findEquiv(int state) {
-  return equivs->get(state, states[state].getHash());
+  /*  StateSet::const_iterator found = eqSet.find(state);
+  if(found == eqSet.end())
+    return -1;
+  else
+  return *found;*/
+  int h = states[state].getHash();
+  int result = equivs->get(state, h);
+  return result;
 }
 
 void Autom::addEquiv(int state) {
-  equivs->add(state, states[state].getHash());
+  int h = states[state].getHash();
+  equivs->add(state, h);
 }
 
 void Autom::removeEquiv(int state) {
-  equivs->remove(state, states[state].getHash());
+  int h = states[state].getHash();
+  equivs->remove(state, h);
 }
 
 // clone the destination for the given transition
-int Autom::clone(int src, unsigned int c, bool cloneFinal) {
-  removeEquiv(src);
+int Autom::clone(int src, unsigned int c, bool equiv) {
   int oldDest = getTr(src, c);
   Autom_State& oldDestState = states[oldDest];
-  if(oldDestState.incoming == 1 /*&& !(oldDestState.isFinal && !cloneFinal)*/)
-    return oldDest;
-  int result = newState();
-  Autom_State& resultState = states[result];
-  for(int i = 0; i<TR_SIZE; i++) {
-    int copyDest = oldDestState.tr[i];
-    resultState.tr[i] = copyDest;
-    if(copyDest >= 0)
-      states[copyDest].trAdded();
+  int result;
+  if(oldDestState.incoming == 1)
+    result = oldDest;
+  else {
+    if(equiv)
+      removeEquiv(src);
+    result = newState();
+    Autom_State& resultState = states[result];
+    for(int i = 0; i<TR_SIZE; i++) {
+      int copyDest = oldDestState.tr[i];
+      resultState.tr[i] = copyDest;
+      if(copyDest >= 0)
+	states[copyDest].trAdded();
+    }
+    resultState.isFinal = oldDestState.isFinal;
+    resultState.outgoing = oldDestState.outgoing;
+    removeTr(src, c, false);
+    addTr(src, c, result, false);
+    // add again since this is still a part of the minimal
+    if(equiv)
+      addEquiv(src);
   }
-  resultState.isFinal = cloneFinal;
-  resultState.outgoing = oldDestState.outgoing;
-  removeTr(src, c);
-  addTr(src, c, result);
-  // add again since this is still a part of the minimal
-  addEquiv(src);
   return result;
 }
 
@@ -139,9 +151,10 @@ TraverseResult Autom::expand(IntStack& cloned, const char* &str, bool forDelete)
       i++;
       if(states[prev].outgoing > 1)
 	result.lastBranch = i;
-      state = clone(prev, *str, *(str + 1) == 0);
-      if(forDelete)
-	cloned.push(state);
+
+      removeEquiv(prev);
+      state = clone(prev, *str, false);
+      cloned.push(state);
       str++;
     } else {
       break;
@@ -149,12 +162,13 @@ TraverseResult Autom::expand(IntStack& cloned, const char* &str, bool forDelete)
   }
   if(forDelete)
     return result;
+  removeEquiv(state);
   cloned.push(state);
   while(*str != 0) {
     // Add new states until minimal except
     // in the new word
     int nState = newState();
-    addTr(state, *str, nState);
+    addTr(state, *str, nState, false);
     cloned.push(nState);
     state = nState;
     str++;
@@ -182,7 +196,7 @@ void Autom::reduce(IntStack& cloned, const char* &str) {
     // and delete the obsoleted state
     cloned.pop();
     delState(state);
-    addTr(cloned.peek(), *(str - i), equiv);
+    addTr(cloned.peek(), *(str - i), equiv, false);
   }
   // All remaining states, including the bottom,
   // need to be added to the final machine
@@ -208,12 +222,12 @@ void Autom::remove(const char* const w) {
     str--;
     cloned.pop();
     int prev = cloned.peek();
-    removeTr(prev, *str);
+    removeTr(prev, *str, false);
     if(states[prev].outgoing > 0 || states[prev].isFinal)
       break;
   }
   reduce(cloned, str);
-  printf("Remove %s ", w);
+  printf("Removing %s ", w);
   checkMinimal();
 }
 
@@ -269,23 +283,26 @@ typedef std::unordered_map<Check, int, CheckHash, CheckEq> CheckHashMap;
 void Autom::checkMinimal() {
   int* classes = new int[last + 1];
   for(int i=0; i<=last; i++) {
-    classes[i] = this->states[i].isFinal;
+    classes[i] = this->states[i].isFinal && !this->states[i].isDeleted;
   }
 
   int cls = 0;
   int newCls = 2;
-  while(cls < newCls) {
-    for(unsigned int i=0; i < TR_SIZE; i++) {
-      int firstState = 0;
-      // find the first state of this class
-      while(classes[firstState] != cls || states[firstState].isDeleted) {
-	if(firstState == last) {
-	  break;
-	}
-	firstState++;
+  bool changed = true;
+  // TODO: currently, each class is traversed only once, which is not correct
+  while(changed) {
+    changed = false;
+    int firstState = 0;
+    // find the first state of this class
+    while(classes[firstState] != cls || states[firstState].isDeleted) {
+      if(firstState == last) {
+	break;
       }
+      firstState++;
+    }
 
-      Autom_State& first = states[firstState];
+    Autom_State& first = states[firstState];
+    for(unsigned int i=0; i < TR_SIZE; i++) {
       int firstDest = first.getTr(i);
       int firstDestClass = firstDest == -1 ? -1 : classes[firstDest];
       CheckHashMap m;
@@ -301,146 +318,29 @@ void Autom::checkMinimal() {
 	std::pair<CheckHashMap::iterator,bool> p = m.emplace(Check(destCls, i), newCls);
 	if(p.second) {
 	  classes[s] = newCls++;
+	  changed = true;
 	} else {
 	  // partition to new class
 	  CheckHashMap::iterator it = p.first;
-	  //const Check check = (*it).first;
-	  // classes[s] = check.destClass;
+	  int oldClass = classes[s];
 	  classes[s] = p.first->second;
+	  changed = changed || oldClass != classes[s];
 	}
       }
     }
     cls++;
   }
 
-  printf("Minimal: %d\n", cls-1 == last - deleted.size());
+  bool isMin = true;
+  for(int i=0; i<last+1 && isMin; i++)
+    for(int j=i+1; j<last+1 && isMin; j++)
+      if(classes[i] == classes[j] && !states[i].isDeleted && !states[j].isDeleted)
+	isMin = false;
+
+  printf("Minimal: %d\n", isMin);
   delete classes;
 }
 
-// -----
-// ----- hash ----
-// -----
-
-static entry* findInTable(int key, int hashCode, entry** table, int cap, const Autom& automaton) {
-  int index = hashCode % cap;
-  entry *next = table[index];
-
-  while(next != 0) {
-    if(next->hash == hashCode && (next->key == key || automaton.equalStates(next->key, key))) {
-	return next;
-      }
-      next = next->next;
-  }
-
-  return next;
-}
-
-static void addToTable(entry* e, entry** table, int index, int* sizes) {
-  e->next = table[index];
-  sizes[index]++;
-  table[index] = e;
-}
-
-void hash::expand() {
-  int new_cap = (cap + 1) * 2 - 1;
-  entry** new_table = new entry*[new_cap];
-  int* new_sizes = new int[new_cap];
-  for(int i=0; i<new_cap; i++) {
-    new_table[i] = 0;
-    new_sizes[i] = 0;
-  }
-  for(int i = 0; i < cap; i++) {
-    entry* e = table[i];
-    entry* next;
-    while(e != 0) {
-      next = e->next;
-      int indexInTable = e->hash % new_cap;
-      addToTable(e, new_table, indexInTable, new_sizes);
-      e = next;
-    }
-  }
-  delete table;
-  table = new_table;
-  delete sizes;
-  sizes = new_sizes;
-  cap = new_cap;
-}
-
-void hash::checkSize(int atIndex) {
-  size++;
-  if(sizes[atIndex] > HASH_LOAD_FACTOR * cap)
-    expand();
-}
-
-int hash::add(int key, int hashCode) {
-  entry *e = findInTable(key, hashCode, table, cap, automaton);
-
-  if(e == 0) {
-    e = new entry(key, hashCode);
-    int indexInTable = e->hash % cap;
-    addToTable(e, table, indexInTable, sizes);
-    checkSize(indexInTable);
-  } // Else, return the equivalent found
-
-  return e->key;
-}
-
-int hash::get(int key, int hashCode) const {
-  entry *e = findInTable(key, hashCode, table, cap, automaton);
-
-  if(e != 0)
-    return e->key;
-  else
-    return -1;
-}
-
-int hash::remove(const int key, int hashCode) {
-  int index = hashCode % cap;
-  entry *next = table[index];
-  if(next == 0)
-    return -1;
-  if(next != 0 && next->hash == hashCode && next->key == key && automaton.equalStates(next->key, key)) {
-    table[index] = next->next;
-    delete next;
-    return key;
-  }
-
-  entry *prev = next;
-  next = next->next;
-  while(next != 0 && next->hash != hashCode && next->key != key && !automaton.equalStates(next->key, key)) {
-    prev = next;
-    next = next->next;
-  }
-  if(next != 0) {
-    prev->next = next->next;
-    delete next;
-    return key;
-  }
-
-  return -1;
-}
-
-hash::~hash() {
-  for(int i = 0; i < cap; i++) {
-    entry* e = table[i];
-    entry* next;
-    while(e != 0) {
-      next = e->next;
-      delete e;
-      e = next;
-    }
-  }
-  delete table;
-}
-
-void hash::print() {
-  for(int i=0; i<cap; i++) {
-    printf("%d: ", i);
-    entry* e = table[i];
-    while(e != 0) {
-      printf("{k = %d, h = %d} ", e->key, e->hash);
-      e = e->next;
-    }
-    printf("\n");
-  }
+void Autom::printEquivs() {
+  equivs->print();
 }

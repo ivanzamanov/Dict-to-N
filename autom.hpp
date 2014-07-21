@@ -1,8 +1,9 @@
 #ifndef __AUTOM_H__
 #define __AUTOM_H__
 
-#define TR_SIZE 256
 #include "stack.hpp"
+
+#define TR_SIZE 256
 
 class Autom;
 struct Autom_State;
@@ -85,18 +86,18 @@ struct Autom_State {
       tr[i] = -1;
   }
 
-  int getHash() {
+  int getHash() const {
     int result = 0;
     for(int i=0; i<TR_SIZE; i++) {
       if(tr[i] >= 0) {
-	result = (result + tr[i]) * TR_SIZE;
+	result = (result + tr[i] + i) * TR_SIZE;
       }
     }
     return result;
   }
 
   bool operator==(const Autom_State& other) const {
-    if(isFinal != other.isFinal)
+    if(isFinal != other.isFinal || outgoing != other.outgoing)
       return 0;
     for(int i=0; i<TR_SIZE; i++) {
       if(tr[i] != other.tr[i])
@@ -128,6 +129,7 @@ public:
 
   void printDot(const char* filePath = 0);
   void printWords();
+  void printEquivs();
   void checkMinimal();
 
 private:
@@ -137,13 +139,13 @@ private:
   IntStack deleted;
   hash* equivs;
 
-  inline int clone(int src, unsigned int c, bool cloneFinal);
+  inline int clone(int src, unsigned int c, bool equiv);
   inline void expandCapacity();
   inline int newState();
   inline void delState(int s);
-  inline int addTr(int src, unsigned int c, int dest);
+  inline int addTr(int src, unsigned int c, int dest, bool equiv);
   inline int getTr(int src, unsigned int c) const;
-  inline void removeTr(int src, unsigned int c);
+  inline void removeTr(int src, unsigned int c, bool equiv);
 
   inline TraverseResult expand(IntStack& cloned, const char* &str, bool forDelete = 0);
   inline void reduce(IntStack& cloned, const char* &str);

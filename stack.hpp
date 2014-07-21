@@ -2,6 +2,7 @@
 #define __STACK__H__
 
 #include<cstdio>
+#include<cstdlib>
 
 template<class T>
 class Stack {
@@ -29,13 +30,13 @@ typedef Stack<int> IntStack;
 
 template<class T>
 Stack<T>::Stack():cap(8), n(0) {
-  data = (int*) malloc(cap * sizeof(T));
+  data = (T*) malloc(cap * sizeof(T));
   n = -1;
 }
 
 template<class T>
 Stack<T>::Stack(const Stack<T>& s):cap(s.cap), n(s.n) {
-  data = (int*) malloc(cap * sizeof(int));
+  data = (T*) malloc(cap * sizeof(int));
   for(int i=0; i<n; i++)
     data[i] = s.data[i];
 }
