@@ -109,7 +109,7 @@ struct Autom_State {
 
 class Autom {
 public:
-  Autom():cap(4), last(0) {
+  Autom():cap(4), last(0), size(0) {
     states = (Autom_State*) malloc(cap * sizeof(Autom_State));
     states[0].reset();
     states[0].incoming = 1;
@@ -131,6 +131,7 @@ public:
   void printWords();
   void printEquivs();
   void checkMinimal();
+  int getSize() const;
 
 private:
   int cap;
@@ -138,14 +139,15 @@ private:
   Autom_State* states;
   IntStack deleted;
   hash* equivs;
+  int size;
 
-  inline int clone(int src, unsigned int c, bool equiv);
+  inline int clone(int src, unsigned int c);
   inline void expandCapacity();
   inline int newState();
   inline void delState(int s);
-  inline int addTr(int src, unsigned int c, int dest, bool equiv);
+  inline int addTr(int src, unsigned int c, int dest);
   inline int getTr(int src, unsigned int c) const;
-  inline void removeTr(int src, unsigned int c, bool equiv);
+  inline void removeTr(int src, unsigned int c);
 
   inline TraverseResult expand(IntStack& cloned, const char* &str, bool forDelete = 0);
   inline void reduce(IntStack& cloned, const char* &str);
@@ -153,6 +155,7 @@ private:
   inline int findEquiv(int state);
   inline void addEquiv(int state);
   inline void removeEquiv(int state);
+  void printHelper(int state, Stack<char>& stack);
 };
 
 struct entry {

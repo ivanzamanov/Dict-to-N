@@ -47,13 +47,9 @@ void Autom::delState(int s) {
   }
 }
 
-int Autom::addTr(int src, unsigned int c, int dest, bool equiv) {
-  if(equiv)
-    removeEquiv(src);
+int Autom::addTr(int src, unsigned int c, int dest) {
   states[src].addTr(c, dest);
   states[dest].trAdded();
-  if(equiv)
-    addEquiv(src);
   return dest;
 };
 
@@ -66,18 +62,14 @@ int Autom::getTr(int src, unsigned int c) const {
   return dest;
 };
 
-void Autom::removeTr(int src, unsigned int c, bool equiv) {
+void Autom::removeTr(int src, unsigned int c) {
   int dest = getTr(src, c);
   if(dest == -1)
     return;
-  if(equiv)
-    removeEquiv(src);
   states[src].removeTr(c);
   states[dest].trRemoved();
   if(states[dest].incoming == 0)
     delState(dest);
-  if(equiv)
-    addEquiv(src);
 }
 
 int Autom::get(const char* const w) const {
@@ -112,15 +104,13 @@ void Autom::removeEquiv(int state) {
 }
 
 // clone the destination for the given transition
-int Autom::clone(int src, unsigned int c, bool equiv) {
+int Autom::clone(int src, unsigned int c) {
   int oldDest = getTr(src, c);
   Autom_State& oldDestState = states[oldDest];
   int result;
   if(oldDestState.incoming == 1)
     result = oldDest;
   else {
-    if(equiv)
-      removeEquiv(src);
     result = newState();
     Autom_State& resultState = states[result];
     for(int i = 0; i<TR_SIZE; i++) {
@@ -131,17 +121,14 @@ int Autom::clone(int src, unsigned int c, bool equiv) {
     }
     resultState.isFinal = oldDestState.isFinal;
     resultState.outgoing = oldDestState.outgoing;
-    removeTr(src, c, false);
-    addTr(src, c, result, false);
-    // add again since this is still a part of the minimal
-    if(equiv)
-      addEquiv(src);
+    removeTr(src, c);
+    addTr(src, c, result);
   }
   return result;
 }
 
 TraverseResult Autom::expand(IntStack& cloned, const char* &str, bool forDelete) {
-  int state;
+  int state = 0;
   int prev = 0;
   TraverseResult result;
   int i = 0;
@@ -153,7 +140,7 @@ TraverseResult Autom::expand(IntStack& cloned, const char* &str, bool forDelete)
 	result.lastBranch = i;
 
       removeEquiv(prev);
-      state = clone(prev, *str, false);
+      state = clone(prev, *str);
       cloned.push(state);
       str++;
     } else {
@@ -162,13 +149,13 @@ TraverseResult Autom::expand(IntStack& cloned, const char* &str, bool forDelete)
   }
   if(forDelete)
     return result;
-  removeEquiv(state);
-  cloned.push(state);
+  //  removeEquiv(state);
+  //  cloned.push(state);
   while(*str != 0) {
     // Add new states until minimal except
     // in the new word
     int nState = newState();
-    addTr(state, *str, nState, false);
+    addTr(state, *str, nState);
     cloned.push(nState);
     state = nState;
     str++;
@@ -184,11 +171,12 @@ void Autom::reduce(IntStack& cloned, const char* &str) {
   int i = 0;
   int state;
   // Traversing the newly added states backwards
+  int equiv;
   while(cloned.size() > 1) {
     i++;
     state = cloned.peek();
     // Look for an equivalent state
-    int equiv = findEquiv(state);
+    equiv = findEquiv(state);
     if(equiv == -1 || equiv == state)
       break; // Not found -> no more will be found
     // Found an equivalent, add a transition
@@ -196,7 +184,7 @@ void Autom::reduce(IntStack& cloned, const char* &str) {
     // and delete the obsoleted state
     cloned.pop();
     delState(state);
-    addTr(cloned.peek(), *(str - i), equiv, false);
+    addTr(cloned.peek(), *(str - i), equiv);
   }
   // All remaining states, including the bottom,
   // need to be added to the final machine
@@ -208,9 +196,15 @@ void Autom::add(const char* const w, int n) {
   const char* str = w;
   IntStack cloned;
   expand(cloned, str);
+  // Means we already recognize the word
+  // if(!states[cloned.peek()].isFinal)
+  //  size++;
   reduce(cloned, str);
+
+#ifdef DEBUG
   printf("Add %s ", w);
   checkMinimal();
+#endif
 }
 
 void Autom::remove(const char* const w) {
@@ -218,17 +212,20 @@ void Autom::remove(const char* const w) {
   const char* str = w;
   IntStack cloned;
   expand(cloned, str, 1);
+  int prev = 0;
   while(cloned.size() > 1) {
     str--;
     cloned.pop();
-    int prev = cloned.peek();
-    removeTr(prev, *str, false);
+    prev = cloned.peek();
+    removeTr(prev, *str);
     if(states[prev].outgoing > 0 || states[prev].isFinal)
       break;
   }
   reduce(cloned, str);
+#ifdef DEBUG
   printf("Removing %s ", w);
   checkMinimal();
+#endif
 }
 
 void Autom::printDot(const char* filePath) {
@@ -248,8 +245,30 @@ void Autom::printDot(const char* filePath) {
   p.end();
 }
 
+int Autom::getSize() const {
+  return size;
+}
+
 void Autom::printWords() {
-  
+  Stack<char> stack;
+  printHelper(0, stack);
+}
+
+void Autom::printHelper(int state, Stack<char>& stack) {
+  Autom_State& st = states[state];
+  if(st.isFinal) {
+    for(int i=0; i < stack.size(); i++)
+      printf("%c", stack.getData()[i]);
+    printf("\n");
+  }
+  for(int i=0; i<TR_SIZE; i++) {
+    int dest = getTr(state, i);
+    if(dest >= 0) {
+      stack.push(i);
+      printHelper(dest, stack);
+      stack.pop();
+    }
+  }
 }
 
 struct Check {
@@ -286,49 +305,43 @@ void Autom::checkMinimal() {
     classes[i] = this->states[i].isFinal && !this->states[i].isDeleted;
   }
 
-  int cls = 0;
   int newCls = 2;
   bool changed = true;
   // TODO: currently, each class is traversed only once, which is not correct
   while(changed) {
     changed = false;
-    int firstState = 0;
-    // find the first state of this class
-    while(classes[firstState] != cls || states[firstState].isDeleted) {
-      if(firstState == last) {
-	break;
-      }
-      firstState++;
-    }
-
-    Autom_State& first = states[firstState];
-    for(unsigned int i=0; i < TR_SIZE; i++) {
-      int firstDest = first.getTr(i);
-      int firstDestClass = firstDest == -1 ? -1 : classes[firstDest];
-      CheckHashMap m;
-      m.emplace(Check(firstDestClass, i), cls);
-      // for all other states, check if they have the same destination class
-      // as the first
-      for(int s = firstState+1; s <= last; s++) {
-	Autom_State& state = states[s];
-	if(state.isDeleted || classes[s] != cls)
-	  continue;
-	int dest = state.getTr(i);
-	int destCls = dest == -1 ? -1 : classes[dest];
-	std::pair<CheckHashMap::iterator,bool> p = m.emplace(Check(destCls, i), newCls);
-	if(p.second) {
-	  classes[s] = newCls++;
-	  changed = true;
-	} else {
-	  // partition to new class
-	  CheckHashMap::iterator it = p.first;
-	  int oldClass = classes[s];
-	  classes[s] = p.first->second;
-	  changed = changed || oldClass != classes[s];
+    for(int firstState = 0; firstState < last; firstState++) {
+      Autom_State& first = states[firstState];
+      if(first.isDeleted)
+	continue;
+      int firstStateClass = classes[firstState];
+      for(unsigned int i=0; i < TR_SIZE; i++) {
+	int firstDest = first.getTr(i);
+	int firstDestClass = firstDest == -1 ? -1 : classes[firstDest];
+	CheckHashMap m;
+	m.emplace(Check(firstDestClass, i), firstStateClass);
+	// for all other states, check if they have the same destination class
+	// as the first
+	for(int s = firstState+1; s <= last; s++) {
+	  Autom_State& state = states[s];
+	  if(state.isDeleted || classes[s] != firstStateClass)
+	    continue;
+	  int dest = state.getTr(i);
+	  int destCls = dest == -1 ? -1 : classes[dest];
+	  std::pair<CheckHashMap::iterator,bool> p = m.emplace(Check(destCls, i), newCls);
+	  if(p.second) {
+	    classes[s] = newCls++;
+	    changed = true;
+	  } else {
+	    // partition to new class
+	    CheckHashMap::iterator it = p.first;
+	    int oldClass = classes[s];
+	    classes[s] = p.first->second;
+	    changed = changed || oldClass != classes[s];
+	  }
 	}
       }
     }
-    cls++;
   }
 
   bool isMin = true;

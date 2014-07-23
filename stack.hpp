@@ -19,6 +19,7 @@ public:
   int size() const;
 
   void print() const;
+  const T* getData() const;
 
 private:
   T* data;
@@ -90,8 +91,13 @@ int Stack<T>::size() const {
 template<class T>
 void Stack<T>::print() const {
   for(int i=n; i >= 0; i--)
-    printf("%d ", data[i]);
+    printf("%c ", data[i]);
   printf("\n");
+}
+
+template<class T>
+const T* Stack<T>::getData() const {
+  return data;
 }
 
 #endif
