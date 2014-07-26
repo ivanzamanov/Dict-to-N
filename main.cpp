@@ -15,7 +15,7 @@ void doWork(char* data, int size);
 
 int main(int argc, const char** argv) {
   argc = 2;
-  //  argv[1] = "small.txt";
+  argv[1] = "data.txt";
   if(argc < 2) {
     printf("No input file specified\n");
     return 1;
@@ -70,25 +70,28 @@ void printStrings(StringVector& vec) {
 }
 void doWork(char* data, int size) {
   Autom a;
-  StringVector strings;
-  readStrings(data, size, strings);
-  StringVector::iterator it = strings.begin();
-  int count = 0;
-  while(it != strings.end()) {
-    count++;
-    a.add(*it);
-    it++;
-  }
-  printf("Processed %d words\n", count);
+  // StringVector strings;
+  // readStrings(data, size, strings);
+  // StringVector::iterator it = strings.begin();
+  // int count = 0;
+  // while(it != strings.end()) {
+  //   count++;
+  //   a.add(*it);
+  //   it++;
+  //   if(count % 1000 == 0)
+  //     printf("Words: %d\n", count);
+  // }
+  // printf("Processed %d words\n", count);
   //  a.printWords();
   delete data;
+
   
-  /*
   a.add("011");
   a.add("010");
   a.printWords();
   a.remove("011");
   a.printWords();
+  /*
   a.add("011");
   a.printWords();
   a.add("0111");
@@ -121,9 +124,9 @@ void doWork(char* data, int size) {
   a.printDot("dot.dot");
   a.printWords();
   */
-  it = strings.begin();
-  while(it != strings.end()) {
-    delete *it;
-    ++it;
-  }
+  // it = strings.begin();
+  // while(it != strings.end()) {
+  //   delete *it;
+  //   ++it;
+  // }
 }

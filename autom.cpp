@@ -15,6 +15,7 @@ void Autom::expandCapacity() {
   cap = newSize;
 };
 
+static int stateCount = 0;
 int Autom::newState() {
   int state;
   if(deleted.isEmpty()) {
@@ -25,6 +26,9 @@ int Autom::newState() {
     state = deleted.pop();
   }
   states[state].reset();
+  stateCount++;
+  if(stateCount % 100000 == 0)
+    printf("States: %d\n", stateCount);
   return state;
 };
 
@@ -255,19 +259,18 @@ void Autom::printWords() {
 }
 
 void Autom::printHelper(int state, Stack<char>& stack) {
-  Autom_State& st = states[state];
+  const Autom_State& st = states[state];
   if(st.isFinal) {
     for(int i=0; i < stack.size(); i++)
       printf("%c", stack.getData()[i]);
     printf("\n");
   }
-  for(int i=0; i<TR_SIZE; i++) {
-    int dest = getTr(state, i);
-    if(dest >= 0) {
-      stack.push(i);
-      printHelper(dest, stack);
-      stack.pop();
-    }
+  TransitionIterator it(st);
+  while(it.hasNext()) {
+    Transition tr = it.next();
+    stack.push(tr.c);
+    printHelper(tr.target, stack);
+    stack.pop();
   }
 }
 

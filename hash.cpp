@@ -1,5 +1,7 @@
 #include"autom.hpp"
 
+#define HASH_LOAD_FACTOR 0.5
+
 static entry* findInTable(int key, int hashCode, entry** table, int cap, const Autom& automaton) {
   int index = hashCode % cap;
   entry *next = table[index];
@@ -21,6 +23,7 @@ static void addToTable(entry* e, entry** table, int index, int* sizes) {
 }
 
 void hash::expand() {
+  printf("expand\n");
   int new_cap = (cap + 1) * 2 - 1;
   entry** new_table = new entry*[new_cap];
   int* new_sizes = new int[new_cap];

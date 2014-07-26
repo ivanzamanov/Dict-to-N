@@ -2,8 +2,7 @@
 #define __AUTOM_H__
 
 #include "stack.hpp"
-
-#define TR_SIZE 256
+#include "autom_state.hpp"
 
 class Autom;
 struct Autom_State;
@@ -11,10 +10,8 @@ struct entry;
 struct hash;
 struct TraverseResult;
 
-#define HASH_INIT_SIZE 7
-#define HASH_LOAD_FACTOR 0.5
 struct hash {
-  hash(const Autom& automaton):size(0), cap(HASH_INIT_SIZE), automaton(automaton) {
+  hash(const Autom& automaton):size(0), cap(7), automaton(automaton) {
     table = new entry*[cap];
     sizes = new int[cap];
     for(int i=0; i<cap; i++) {
@@ -39,72 +36,6 @@ private:
   int size;
   int cap;
   const Autom& automaton;
-};
-
-struct Autom_State {
-  Autom_State() { reset(); }
-
-  bool isFinal;
-  bool isDeleted;
-  int tr[TR_SIZE];
-
-  int outgoing;
-  int incoming;
-
-  inline void trAdded() {
-    incoming++;
-  }
-
-  inline void trRemoved() {
-    incoming--;
-  }
-
-  inline int getTr(unsigned int c) {
-    return tr[c];
-  }
-
-  inline void addTr(unsigned int c, int dest) {
-    if(dest == -1) // If this is a delete
-      outgoing--;
-    else if(tr[c] == -1) // If this is not a replace
-      outgoing++;
-
-    tr[c] = dest;
-  }
-
-  inline void removeTr(unsigned int c) {
-    outgoing--;
-    tr[c] = -1;
-  }
-
-  inline void reset() {
-    incoming = 0;
-    outgoing = 0;
-    isDeleted = 0;
-    isFinal = 0;
-    for(int i=0; i<TR_SIZE; i++)
-      tr[i] = -1;
-  }
-
-  int getHash() const {
-    int result = 0;
-    for(int i=0; i<TR_SIZE; i++) {
-      if(tr[i] >= 0) {
-	result = (result + tr[i] + i) * TR_SIZE;
-      }
-    }
-    return result;
-  }
-
-  bool operator==(const Autom_State& other) const {
-    if(isFinal != other.isFinal || outgoing != other.outgoing)
-      return 0;
-    for(int i=0; i<TR_SIZE; i++) {
-      if(tr[i] != other.tr[i])
-	return 0;
-    }
-    return 1;
-  }
 };
 
 class Autom {
