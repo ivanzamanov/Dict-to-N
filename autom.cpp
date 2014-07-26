@@ -170,13 +170,16 @@ void Autom::reduce(IntStack& cloned, const char* &str) {
   int state;
   // Traversing the newly added states backwards
   int equiv;
-  while(cloned.size() > 1) {
+  while(cloned.size() > 1
+	&& (state = cloned.peek()) > 0
+	&& (equiv = findEquiv(state)) > 0
+	&& equiv == state) {
     i++;
-    state = cloned.peek();
+    // state = cloned.peek();
     // Look for an equivalent state
-    equiv = findEquiv(state);
-    if(equiv == -1 || equiv == state)
-      break; // Not found -> no more will be found
+    // equiv = findEquiv(state);
+    // if(equiv == -1 || equiv == state)
+    //  break; // Not found -> no more will be found
     // Found an equivalent, add a transition
     // from the previous state in the chain to the equiv.
     // and delete the obsoleted state
