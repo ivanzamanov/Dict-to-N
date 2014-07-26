@@ -1,4 +1,3 @@
-#include<cstdlib>
 #include<cstdio>
 #include<unordered_map>
 #include<functional>
@@ -8,7 +7,7 @@
 
 void Autom::expandCapacity() {
   int newSize = cap * 2;
-  states = (Autom_State*) realloc(states, newSize * sizeof(Autom_State));
+  states = reallocateStates(states, cap, newSize);
   for(int i=cap; i < newSize; i++) {
     states[i].reset();
   }
@@ -41,13 +40,13 @@ void Autom::delState(int s) {
   deleted.push(s);
   if(states[s].outgoing == 0)
     return;
-  for(unsigned int i = 0; i<TR_SIZE; i++) {
-    int dest = states[s].getTr(i);
-    if(dest >= 0) {
-      states[dest].trRemoved();
-      if(states[dest].incoming == 0)
-	delState(dest);
-    }
+  TransitionIterator it(states[s]);
+  while(it.hasNext()) {
+    Transition tr = it.next();
+    int dest = tr.target;
+    states[dest].trRemoved();
+    if(states[dest].incoming == 0)
+      delState(dest);
   }
 }
 
@@ -117,12 +116,7 @@ int Autom::clone(int src, unsigned int c) {
   else {
     result = newState();
     Autom_State& resultState = states[result];
-    for(int i = 0; i<TR_SIZE; i++) {
-      int copyDest = oldDestState.tr[i];
-      resultState.tr[i] = copyDest;
-      if(copyDest >= 0)
-	states[copyDest].trAdded();
-    }
+    resultState.copyTransitions(oldDestState, states);
     resultState.isFinal = oldDestState.isFinal;
     resultState.outgoing = oldDestState.outgoing;
     removeTr(src, c);
@@ -240,10 +234,11 @@ void Autom::printDot(const char* filePath) {
     if(state.isDeleted)
       continue;
     p.node(i, state.isFinal);
-    for(unsigned int j=0; j<TR_SIZE; j++) {
-      int dest = state.getTr(j);
-      if(dest >= 0 && !states[dest].isDeleted)
-	p.edge(i, j, state.getTr(j));
+    TransitionIterator it(state);
+    while(it.hasNext()) {
+      Transition tr = it.next();
+      if(!states[tr.target].isDeleted)
+	p.edge(i, tr.c, tr.target);
     }
   }
   p.end();
@@ -318,8 +313,11 @@ void Autom::checkMinimal() {
       if(first.isDeleted)
 	continue;
       int firstStateClass = classes[firstState];
-      for(unsigned int i=0; i < TR_SIZE; i++) {
-	int firstDest = first.getTr(i);
+      TransitionIterator it(first);
+      while(it.hasNext()) {
+	Transition tr = it.next();
+	int i = tr.c;
+	int firstDest = tr.target;
 	int firstDestClass = firstDest == -1 ? -1 : classes[firstDest];
 	CheckHashMap m;
 	m.emplace(Check(firstDestClass, i), firstStateClass);

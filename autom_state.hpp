@@ -1,25 +1,27 @@
 #ifndef __AUTOM_STATE_H__
 #define __AUTOM_STATE_H__
 
-#define TR_SIZE 256
-
 struct Transition {
-  Transition(unsigned int c, int target): c(c),target(target) { };
-  unsigned int c;
+  Transition(int c, int target): c(c),target(target) { };
+  int c;
   int target;
+  void operator()(int c, int target) {
+    this->c = c;
+    this->target = target;
+  }
 };
 
 struct Autom_State {
-  Autom_State() { reset(); }
-
-  bool isFinal;
-  bool isDeleted;
-  int tr[TR_SIZE];
+  Transition* tr;
+  int cap;
 
   int outgoing;
   int incoming;
+  bool isFinal;
+  bool isDeleted;
 
   int transitionCount() const;
+  void copyTransitions(const Autom_State& source, Autom_State* states);
   void trAdded();
   void trRemoved();
   int getTr(unsigned int c) const;
@@ -42,5 +44,9 @@ private:
   int currentIndex;
   int nextIndex;
 };
+
+void deallocateStates(Autom_State* ptr);
+Autom_State* allocateStates(int count);
+Autom_State* reallocateStates(Autom_State* ptr, int oldSize, int newSize);
 
 #endif

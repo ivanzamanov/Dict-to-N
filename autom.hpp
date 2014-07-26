@@ -41,14 +41,13 @@ private:
 class Autom {
 public:
   Autom():cap(4), last(0), size(0) {
-    states = (Autom_State*) malloc(cap * sizeof(Autom_State));
-    states[0].reset();
+    states = allocateStates(cap);
     states[0].incoming = 1;
     equivs = new hash(*this);
   };
 
   ~Autom() {
-    free(states);
+    deallocateStates(states);
     delete equivs;
   };
 
