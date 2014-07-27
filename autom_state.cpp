@@ -3,7 +3,9 @@
 
 #include"autom_state.hpp"
 
-void deallocateStates(Autom_State* ptr) {
+void deallocateStates(Autom_State* ptr, int size) {
+  for(int i=0; i<size; i++)
+    free(ptr[i].tr);
   free(ptr);
 };
 
@@ -19,6 +21,8 @@ void initState(Autom_State* ptr) {
   ptr->tr = (Transition*) malloc(initialCap * sizeof(Transition));
   initTransitions(ptr->tr, initialCap);
   ptr->cap = initialCap;
+  ptr->incoming = 0;
+  ptr->outgoing = 0;
 };
 
 Autom_State* allocateStates(int count) {
@@ -54,6 +58,7 @@ void Autom_State::copyTransitions(const Autom_State& source, Autom_State* states
     if(copyDest >= 0)
       states[copyDest].trAdded();
   }
+  outgoing = source.outgoing;
 }
 
 int Autom_State::getTr(unsigned int c) const {
@@ -89,6 +94,7 @@ void Autom_State::removeTr(unsigned int c) {
   for(int i=0; i<cap; i++)
     if(tr[i].c == sgnc) {
       tr[i](-1, -1);
+      outgoing--;
       break;
     }
 }

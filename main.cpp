@@ -36,7 +36,7 @@ int main(int argc, const char** argv) {
 
   char* data = new char[size + 1];
   read(fd, data, size);
-  data[size + 1] = 0;
+  data[size] = 0;
   doWork(data, size);
 }
 
@@ -54,8 +54,8 @@ void readStrings(char* data, int size, StringVector& vec) {
       ptr++;
     }
     char* str = new char[i];
-    strncpy(str, data + offset, i+1);
-    str[i] = 0;
+    strncpy(str, data + offset, i);
+    str[i-1] = 0;
     offset += i;
     vec.push_back(str);
     offset++;
@@ -82,8 +82,12 @@ void doWork(char* data, int size) {
       printf("Words: %d\n", count);
   }
   printf("Processed %d words\n", count);
-   a.printWords();
-  delete data;
+  delete[] data;
+  while(!strings.empty()) {
+    char* str = strings.back();
+    strings.pop_back();
+    delete[] str;
+  }
   
   // a.add("011");
   // a.printWords();
@@ -91,42 +95,27 @@ void doWork(char* data, int size) {
   // a.printWords();
   // a.remove("011");
   // a.printWords();
-  /*
-  a.add("011");
-  a.printWords();
-  a.add("0111");
-  a.printWords();
-  a.add("11111");
-  a.printWords();
-  a.add("0101");
-  a.printWords();
-  a.remove("0111");
-  a.printWords();
-  a.add("01110");
-  a.printWords();
 
-  a.add("10");
-  a.printWords();
-  a.remove("01110");
-  a.printWords();
-  a.add("011");
-  a.printWords();
-  a.add("1100");
-  a.printWords();
-  a.add("11");
-  a.printWords();
+  // a.add("1");
+  // a.add("11");
+  // a.add("0");
+  // a.add("01");
   
-  a.remove("0101");
-  a.printWords();
-  a.remove("11111");
-  a.printWords();
+  // a.add("011");
+  // a.add("0101");
+  // a.add("11111");
+  // a.add("0111");
+  // a.add("01110");
+
+  // a.add("10");
+  // a.add("1100");
+  // a.add("11");
+  
+  // a.remove("0101");
+  // a.remove("11111");
+  // a.remove("0111");
+  // a.remove("01110");
 
   a.printDot("dot.dot");
   a.printWords();
-  */
-  // it = strings.begin();
-  // while(it != strings.end()) {
-  //   delete *it;
-  //   ++it;
-  // }
 }

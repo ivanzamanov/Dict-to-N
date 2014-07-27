@@ -31,3 +31,5 @@ dict
 *.dot
 data.txt
 million.txt
+small.txt
+*.png

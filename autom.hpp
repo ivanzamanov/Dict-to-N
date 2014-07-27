@@ -5,20 +5,12 @@
 #include "autom_state.hpp"
 
 class Autom;
-struct Autom_State;
 struct entry;
 struct hash;
 struct TraverseResult;
 
 struct hash {
-  hash(const Autom& automaton):size(0), cap(7), automaton(automaton) {
-    table = new entry*[cap];
-    sizes = new int[cap];
-    for(int i=0; i<cap; i++) {
-      table[i] = 0;
-      sizes[i] = 0;
-    }
-  }
+  hash(const Autom& automaton);
 
   int add(const int key, int hashCode);
   int get(const int key, int hashCode) const;
@@ -40,16 +32,8 @@ private:
 
 class Autom {
 public:
-  Autom():cap(4), last(0), size(0) {
-    states = allocateStates(cap);
-    states[0].incoming = 1;
-    equivs = new hash(*this);
-  };
-
-  ~Autom() {
-    deallocateStates(states);
-    delete equivs;
-  };
+  Autom();
+  ~Autom();
 
   void add(const char* const w, int n = 1);
   void remove(const char* const w);

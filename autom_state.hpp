@@ -13,9 +13,9 @@ struct Transition {
 
 struct Autom_State {
   Transition* tr;
-  int cap;
+  short cap;
 
-  int outgoing;
+  short outgoing;
   int incoming;
   bool isFinal;
   bool isDeleted;
@@ -45,7 +45,7 @@ private:
   int nextIndex;
 };
 
-void deallocateStates(Autom_State* ptr);
+void deallocateStates(Autom_State* ptr, int size);
 Autom_State* allocateStates(int count);
 Autom_State* reallocateStates(Autom_State* ptr, int oldSize, int newSize);
 

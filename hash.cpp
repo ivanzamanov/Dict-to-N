@@ -22,8 +22,30 @@ static void addToTable(entry* e, entry** table, int index, int* sizes) {
   table[index] = e;
 }
 
+hash::hash(const Autom& automaton):size(0), cap(7), automaton(automaton) {
+  table = new entry*[cap];
+  sizes = new int[cap];
+  for(int i=0; i<cap; i++) {
+    table[i] = 0;
+    sizes[i] = 0;
+  }
+}
+
+hash::~hash() {
+  for(int i = 0; i < cap; i++) {
+    entry* e = table[i];
+    entry* next;
+    while(e != 0) {
+      next = e->next;
+      delete e;
+      e = next;
+    }
+  }
+  delete[] table;
+  delete[] sizes;
+}
+
 void hash::expand() {
-  printf("expand\n");
   int new_cap = (cap + 1) * 2 - 1;
   entry** new_table = new entry*[new_cap];
   int* new_sizes = new int[new_cap];
@@ -41,9 +63,9 @@ void hash::expand() {
       e = next;
     }
   }
-  delete table;
+  delete[] table;
   table = new_table;
-  delete sizes;
+  delete[] sizes;
   sizes = new_sizes;
   cap = new_cap;
 }
@@ -81,7 +103,10 @@ int hash::remove(const int key, int hashCode) {
   entry *next = table[index];
   if(next == 0)
     return -1;
-  if(next != 0 && next->hash == hashCode && next->key == key && automaton.equalStates(next->key, key)) {
+  if(next != 0
+     && next->hash == hashCode
+     && next->key == key
+     && automaton.equalStates(next->key, key)) {
     table[index] = next->next;
     delete next;
     return key;
@@ -89,7 +114,10 @@ int hash::remove(const int key, int hashCode) {
 
   entry *prev = next;
   next = next->next;
-  while(next != 0 && next->hash != hashCode && next->key != key && !automaton.equalStates(next->key, key)) {
+  while(next != 0
+	&& next->hash != hashCode
+	&& next->key != key
+	&& !automaton.equalStates(next->key, key)) {
     prev = next;
     next = next->next;
   }
@@ -100,19 +128,6 @@ int hash::remove(const int key, int hashCode) {
   }
 
   return -1;
-}
-
-hash::~hash() {
-  for(int i = 0; i < cap; i++) {
-    entry* e = table[i];
-    entry* next;
-    while(e != 0) {
-      next = e->next;
-      delete e;
-      e = next;
-    }
-  }
-  delete table;
 }
 
 void hash::print() {

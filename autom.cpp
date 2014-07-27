@@ -5,6 +5,17 @@
 #include"autom.hpp"
 #include"dot.hpp"
 
+Autom::Autom():cap(4), last(0), size(0) {
+  states = allocateStates(cap);
+  states[0].incoming = 1;
+  equivs = new hash(*this);
+};
+
+Autom::~Autom() {
+  deallocateStates(states, cap);
+  delete equivs;
+};
+
 void Autom::expandCapacity() {
   int newSize = cap * 2;
   states = reallocateStates(states, cap, newSize);
@@ -21,13 +32,13 @@ int Autom::newState() {
     if(last == cap - 1)
       expandCapacity();
     state = ++last;
+  stateCount++;
+  if(stateCount % 100000 == 0)
+    printf("States: %d\n", stateCount);
   } else {
     state = deleted.pop();
   }
   states[state].reset();
-  stateCount++;
-  if(stateCount % 100000 == 0)
-    printf("States: %d\n", stateCount);
   return state;
 };
 
@@ -130,20 +141,15 @@ TraverseResult Autom::expand(IntStack& cloned, const char* &str, bool forDelete)
   int prev = 0;
   TraverseResult result;
   int i = 0;
-  while(*str) {
+  cloned.push(state);
+  while(*str && getTr(state, *str) != -1) {
     prev = state;
-    if(getTr(prev, *str) != -1) {
-      i++;
-      if(states[prev].outgoing > 1)
-	result.lastBranch = i;
+    i++;
 
-      removeEquiv(prev);
-      state = clone(prev, *str);
-      cloned.push(state);
-      str++;
-    } else {
-      break;
-    }
+    removeEquiv(prev);
+    state = clone(prev, *str);
+    cloned.push(state);
+    str++;
   }
   if(forDelete)
     return result;
@@ -171,9 +177,8 @@ void Autom::reduce(IntStack& cloned, const char* &str) {
   // Traversing the newly added states backwards
   int equiv;
   while(cloned.size() > 1
-	&& (state = cloned.peek()) > 0
-	&& (equiv = findEquiv(state)) > 0
-	&& equiv == state) {
+	&& (equiv = findEquiv(cloned.peek())) > 0) {
+    state = cloned.peek();
     i++;
     // state = cloned.peek();
     // Look for an equivalent state
@@ -326,9 +331,9 @@ void Autom::checkMinimal() {
 	m.emplace(Check(firstDestClass, i), firstStateClass);
 	// for all other states, check if they have the same destination class
 	// as the first
-	for(int s = firstState+1; s <= last; s++) {
+	for(int s = 0; s <= last; s++) {
 	  Autom_State& state = states[s];
-	  if(state.isDeleted || classes[s] != firstStateClass)
+	  if(state.isDeleted || classes[s] != firstStateClass || s == firstState)
 	    continue;
 	  int dest = state.getTr(i);
 	  int destCls = dest == -1 ? -1 : classes[dest];
