@@ -2,9 +2,9 @@
 #define __AUTOM_STATE_H__
 
 struct Transition {
-  Transition(int c, int target): c(c),target(target) { };
-  int c;
+  Transition(int c, int target): target(target),c(c) { };
   int target;
+  short c;
   void operator()(int c, int target) {
     this->c = c;
     this->target = target;
@@ -13,13 +13,14 @@ struct Transition {
 
 struct Autom_State {
   Transition* tr;
+  int incoming;
   short cap;
 
   short outgoing;
-  int incoming;
   bool isFinal;
-  bool isDeleted;
+  //  bool isDeleted;
 
+  bool isDeleted();
   int transitionCount() const;
   void copyTransitions(const Autom_State& source, Autom_State* states);
   void trAdded();

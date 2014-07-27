@@ -17,7 +17,7 @@ Autom::~Autom() {
 };
 
 void Autom::expandCapacity() {
-  int newSize = cap * 2;
+  int newSize = cap * 1.6;
   states = reallocateStates(states, cap, newSize);
   for(int i=cap; i < newSize; i++) {
     states[i].reset();
@@ -47,7 +47,7 @@ bool Autom::equalStates(int s1, int s2) const {
 }
 
 void Autom::delState(int s) {
-  states[s].isDeleted = 1;
+  //  states[s].isDeleted = 1;
   deleted.push(s);
   if(states[s].outgoing == 0)
     return;
@@ -68,10 +68,10 @@ int Autom::addTr(int src, unsigned int c, int dest) {
 };
 
 int Autom::getTr(int src, unsigned int c) const {
-  if(src < 0 || src > last || states[src].isDeleted)
+  if(src < 0 || src > last || states[src].isDeleted())
     return -1;
   int dest = states[src].getTr(c);
-  if(dest == -1 || states[dest].isDeleted)
+  if(dest == -1 || states[dest].isDeleted())
     return -1;
   return dest;
 };
@@ -239,13 +239,13 @@ void Autom::printDot(const char* filePath) {
   p.start();
   for(int i=0; i<=last; i++) {
     Autom_State& state = states[i];
-    if(state.isDeleted)
+    if(state.isDeleted())
       continue;
     p.node(i, state.isFinal);
     TransitionIterator it(state);
     while(it.hasNext()) {
       Transition tr = it.next();
-      if(!states[tr.target].isDeleted)
+      if(!states[tr.target].isDeleted())
 	p.edge(i, tr.c, tr.target);
     }
   }
@@ -308,7 +308,7 @@ typedef std::unordered_map<Check, int, CheckHash, CheckEq> CheckHashMap;
 void Autom::checkMinimal() {
   int* classes = new int[last + 1];
   for(int i=0; i<=last; i++) {
-    classes[i] = this->states[i].isFinal && !this->states[i].isDeleted;
+    classes[i] = this->states[i].isFinal && !this->states[i].isDeleted();
   }
 
   int newCls = 2;
@@ -318,7 +318,7 @@ void Autom::checkMinimal() {
     changed = false;
     for(int firstState = 0; firstState < last; firstState++) {
       Autom_State& first = states[firstState];
-      if(first.isDeleted)
+      if(first.isDeleted())
 	continue;
       int firstStateClass = classes[firstState];
       TransitionIterator it(first);
@@ -333,7 +333,7 @@ void Autom::checkMinimal() {
 	// as the first
 	for(int s = 0; s <= last; s++) {
 	  Autom_State& state = states[s];
-	  if(state.isDeleted || classes[s] != firstStateClass || s == firstState)
+	  if(state.isDeleted() || classes[s] != firstStateClass || s == firstState)
 	    continue;
 	  int dest = state.getTr(i);
 	  int destCls = dest == -1 ? -1 : classes[dest];
@@ -356,7 +356,7 @@ void Autom::checkMinimal() {
   bool isMin = true;
   for(int i=0; i<last+1 && isMin; i++)
     for(int j=i+1; j<last+1 && isMin; j++)
-      if(classes[i] == classes[j] && !states[i].isDeleted && !states[j].isDeleted)
+      if(classes[i] == classes[j] && !states[i].isDeleted() && !states[j].isDeleted())
 	isMin = false;
 
   printf("Minimal: %d\n", isMin);
@@ -365,4 +365,25 @@ void Autom::checkMinimal() {
 
 void Autom::printEquivs() {
   equivs->print();
+}
+
+void Autom::printStats() {
+  int counts[200];
+  int diffs[200];
+  for(int i=0; i<200; i++) {
+    counts[i] = 0;
+    diffs[i] = 0;
+  }
+  for(int i=0; i<=last; i++) {
+    Autom_State& st = states[i];
+    if(!st.isDeleted()) {
+      counts[st.outgoing]++;
+      diffs[st.outgoing] += (st.cap - st.outgoing);
+    }
+  }
+  for(int i=0; i<200; i++)
+    if(counts[i] > 0) {
+      printf("Count %d = %d\n", i, counts[i]);
+      printf("Diff %d\n", diffs[i]);
+    }
 }

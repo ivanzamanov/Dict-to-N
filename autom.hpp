@@ -45,6 +45,7 @@ public:
   void printWords();
   void printEquivs();
   void checkMinimal();
+  void printStats();
   int getSize() const;
 
 private:

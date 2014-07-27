@@ -14,10 +14,10 @@ void initTransitions(Transition* tr, int count) {
     tr[i](-1, -1);
 }
 
-static int initialCap = 4;
+static int initialCap = 1;
 void initState(Autom_State* ptr) {
   ptr->isFinal = 0;
-  ptr->isDeleted = 0;
+  //  ptr->isDeleted = 0;
   ptr->tr = (Transition*) malloc(initialCap * sizeof(Transition));
   initTransitions(ptr->tr, initialCap);
   ptr->cap = initialCap;
@@ -83,10 +83,14 @@ void Autom_State::addTr(unsigned int c, int dest) {
     }
   }
   // expand
-  cap+=2;
+  // cap+=2;
+  // tr = (Transition*) realloc(tr, cap * sizeof(Transition));
+  // initTransitions(tr + cap - 2, 2);
+  // tr[cap-2](c, dest);
+  cap++;
   tr = (Transition*) realloc(tr, cap * sizeof(Transition));
-  initTransitions(tr + cap - 2, 2);
-  tr[cap-2](c, dest);
+  initTransitions(tr+1, 1);
+  tr[cap-1](c,dest);
 }
 
 void Autom_State::removeTr(unsigned int c) {
@@ -112,12 +116,12 @@ void Autom_State::trRemoved() {
 }
 
 void Autom_State::reset() {
-  incoming = 0;
-  outgoing = 0;
-  isDeleted = 0;
-  isFinal = 0;
-  for(int i=0; i<cap; i++)
-    tr[i](-1, -1);
+  free(tr);
+  initState(this);
+}
+
+bool Autom_State::isDeleted() {
+  return false;
 }
 
 int Autom_State::getHash() const {

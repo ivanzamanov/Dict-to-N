@@ -15,7 +15,7 @@ void doWork(char* data, int size);
 
 int main(int argc, const char** argv) {
   argc = 2;
-  argv[1] = "million.txt";
+  argv[1] = "data.txt";
   if(argc < 2) {
     printf("No input file specified\n");
     return 1;
@@ -88,6 +88,7 @@ void doWork(char* data, int size) {
     strings.pop_back();
     delete[] str;
   }
+  a.printStats();
   
   // a.add("011");
   // a.printWords();
@@ -116,6 +117,6 @@ void doWork(char* data, int size) {
   // a.remove("0111");
   // a.remove("01110");
 
-  a.printDot("dot.dot");
-  a.printWords();
+  //  a.printDot("dot.dot");
+  //  a.printWords();
 }
