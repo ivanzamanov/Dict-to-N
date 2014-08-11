@@ -2,12 +2,19 @@
 #define __AUTOM_STATE_H__
 
 struct Transition {
-  Transition(int c, int target): target(target),c(c) { };
+  Transition(int c, int target, unsigned int payload)
+    : target(target),payload(payload),c(c) { };
+  Transition(int c, int target)
+    : target(target),payload(0),c(c) { };
+  Transition(int c)
+    : target(-1),payload(0),c(c) { };
   int target;
+  unsigned int payload;
   short c;
-  void operator()(int c, int target) {
+  void operator()(int c, int target, unsigned int payload = 0) {
     this->c = c;
     this->target = target;
+    this->payload = payload;
   }
 };
 
@@ -25,9 +32,9 @@ struct Autom_State {
   void copyTransitions(const Autom_State& source, Autom_State* states);
   void trAdded();
   void trRemoved();
-  int getTr(unsigned int c) const;
-  void addTr(unsigned int c, int dest);
-  void removeTr(unsigned int c);
+  Transition getTr(unsigned int c) const;
+  void addTr(const Transition& trans);
+  void removeTr(const Transition& trans);
   void reset();
   int getHash() const;
   bool operator==(const Autom_State& other) const;
@@ -37,7 +44,7 @@ class TransitionIterator {
 public:
   TransitionIterator(const Autom_State& state):state(state) { begin(); }
   void begin();
-  Transition next();
+  const Transition& next();
   bool hasNext();
 
 private:

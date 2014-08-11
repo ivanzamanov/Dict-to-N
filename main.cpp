@@ -70,53 +70,31 @@ void printStrings(StringVector& vec) {
 }
 void doWork(char* data, int size) {
   Autom a;
-  StringVector strings;
-  readStrings(data, size, strings);
-  StringVector::iterator it = strings.begin();
-  int count = 0;
-  while(it != strings.end()) {
-    count++;
-    a.add(*it);
-    it++;
-    if(count % 1000 == 0)
-      printf("Words: %d\n", count);
-  }
-  printf("Processed %d words\n", count);
-  delete[] data;
-  while(!strings.empty()) {
-    char* str = strings.back();
-    strings.pop_back();
-    delete[] str;
-  }
-  a.printStats();
-  
-  // a.add("011");
-  // a.printWords();
-  // a.add("010");
-  // a.printWords();
-  // a.remove("011");
-  // a.printWords();
+  // StringVector strings;
+  // readStrings(data, size, strings);
+  // StringVector::iterator it = strings.begin();
+  // int count = 0;
+  // while(it != strings.end()) {
+  //   count++;
+  //   a.add(*it);
+  //   it++;
+  //   if(count % 1000 == 0)
+  //     printf("Words: %d\n", count);
+  // }
+  // printf("Processed %d words\n", count);
+  // delete[] data;
+  // while(!strings.empty()) {
+  //   char* str = strings.back();
+  //   strings.pop_back();
+  //   delete[] str;
+  // }
+  // a.printStats();
 
-  // a.add("1");
-  // a.add("11");
-  // a.add("0");
-  // a.add("01");
-  
-  // a.add("011");
-  // a.add("0101");
-  // a.add("11111");
-  // a.add("0111");
-  // a.add("01110");
-
-  // a.add("10");
-  // a.add("1100");
-  // a.add("11");
-  
-  // a.remove("0101");
-  // a.remove("11111");
-  // a.remove("0111");
-  // a.remove("01110");
-
-  //  a.printDot("dot.dot");
-  //  a.printWords();
+  a.add("11", 6);
+  a.add("111", 7);
+  a.add("0", 7);
+  a.add("01", 5);
+  a.remove("111");
+  a.remove("11");
+  a.printDot("/tmp/temp.dot");
 }

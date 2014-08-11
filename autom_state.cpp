@@ -10,8 +10,10 @@ void deallocateStates(Autom_State* ptr, int size) {
 };
 
 void initTransitions(Transition* tr, int count) {
-  for(int i=0; i<count; i++)
+  for(int i=0; i<count; i++) {
     tr[i](-1, -1);
+    tr[i].payload = 0;
+  }
 }
 
 static int initialCap = 1;
@@ -52,7 +54,7 @@ void find(const Autom_State& state, int index, int& found) {
 void Autom_State::copyTransitions(const Autom_State& source, Autom_State* states) {
   cap = source.cap;
   tr = (Transition*) realloc(tr, cap * sizeof(Transition));
-  memcpy(tr, source.tr, cap * sizeof(int));
+  memcpy(tr, source.tr, cap * sizeof(Transition));
   for(int i = 0; i<cap; i++) {
     int copyDest = tr[i].target;
     if(copyDest >= 0)
@@ -61,43 +63,36 @@ void Autom_State::copyTransitions(const Autom_State& source, Autom_State* states
   outgoing = source.outgoing;
 }
 
-int Autom_State::getTr(unsigned int c) const {
-  int sgc = c;
+Transition Autom_State::getTr(unsigned int c) const {
+  short sgc = c;
   for(int i=0; i<cap; i++) {
     if(tr[i].c == sgc)
-      return tr[i].target;
+      return tr[i];
   }
   return -1;
 }
 
-void Autom_State::addTr(unsigned int c, int dest) {
-  if(dest == -1)// If this is a delete
+void Autom_State::addTr(const Transition& trans) {
+  if(trans.target == -1)// If this is a delete
     outgoing--;
-  int sgc = c;
   for(int i=0; i<cap; i++) {
-    if(tr[i].c == sgc || tr[i].c == -1) {
+    if(tr[i].c == trans.c || tr[i].c == -1) {
       if(tr[i].target == -1) // If this is not a replace
 	outgoing++;
-      tr[i](c, dest);
+      tr[i] = trans;
       return;
     }
   }
-  // expand
-  // cap+=2;
-  // tr = (Transition*) realloc(tr, cap * sizeof(Transition));
-  // initTransitions(tr + cap - 2, 2);
-  // tr[cap-2](c, dest);
   cap++;
   tr = (Transition*) realloc(tr, cap * sizeof(Transition));
   initTransitions(tr+1, 1);
-  tr[cap-1](c,dest);
+  tr[cap-1] = trans;
 }
 
-void Autom_State::removeTr(unsigned int c) {
-  int sgnc = c;
+void Autom_State::removeTr(const Transition& trans) {
   for(int i=0; i<cap; i++)
-    if(tr[i].c == sgnc) {
-      tr[i](-1, -1);
+    if(tr[i].c == trans.c) {
+      tr[i](-1, -1, 0);
       outgoing--;
       break;
     }
@@ -162,7 +157,7 @@ bool TransitionIterator::hasNext() {
   return nextIndex >= 0;
 }
 
-Transition TransitionIterator::next() {
+const Transition& TransitionIterator::next() {
   int result = nextIndex;
   find(state, nextIndex + 1, nextIndex);
   return state.tr[result];

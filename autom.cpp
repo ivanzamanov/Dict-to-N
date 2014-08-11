@@ -49,8 +49,6 @@ bool Autom::equalStates(int s1, int s2) const {
 void Autom::delState(int s) {
   //  states[s].isDeleted = 1;
   deleted.push(s);
-  if(states[s].outgoing == 0)
-    return;
   TransitionIterator it(states[s]);
   while(it.hasNext()) {
     Transition tr = it.next();
@@ -61,36 +59,33 @@ void Autom::delState(int s) {
   }
 }
 
-int Autom::addTr(int src, unsigned int c, int dest) {
-  states[src].addTr(c, dest);
-  states[dest].trAdded();
-  return dest;
+void Autom::addTr(int src, const Transition& tr) {
+  states[src].addTr(tr);
+  states[tr.target].trAdded();
 };
 
-int Autom::getTr(int src, unsigned int c) const {
+Transition Autom::getTr(int src, unsigned int c) const {
   if(src < 0 || src > last || states[src].isDeleted())
-    return -1;
-  int dest = states[src].getTr(c);
-  if(dest == -1 || states[dest].isDeleted())
-    return -1;
-  return dest;
+    return Transition(-1, -1);
+  Transition trans = states[src].getTr(c);
+  return trans;
 };
 
 void Autom::removeTr(int src, unsigned int c) {
-  int dest = getTr(src, c);
-  if(dest == -1)
+  Transition trans = getTr(src, c);
+  if(trans.target == -1)
     return;
-  states[src].removeTr(c);
-  states[dest].trRemoved();
-  if(states[dest].incoming == 0)
-    delState(dest);
+  states[src].removeTr(Transition(c));
+  states[trans.target].trRemoved();
+  if(states[trans.target].incoming == 0)
+    delState(trans.target);
 }
 
 int Autom::get(const char* const w) const {
   const char* str = w;
   int state = 0;
   while(state != -1 && *str) {
-    state = getTr(state, *str);
+    state = getTr(state, *str).target;
     str++;
   }
   return state != -1 && states[state].isFinal;
@@ -119,7 +114,7 @@ void Autom::removeEquiv(int state) {
 
 // clone the destination for the given transition
 int Autom::clone(int src, unsigned int c) {
-  int oldDest = getTr(src, c);
+  int oldDest = getTr(src, c).target;
   Autom_State& oldDestState = states[oldDest];
   int result;
   if(oldDestState.incoming == 1)
@@ -131,35 +126,35 @@ int Autom::clone(int src, unsigned int c) {
     resultState.isFinal = oldDestState.isFinal;
     resultState.outgoing = oldDestState.outgoing;
     removeTr(src, c);
-    addTr(src, c, result);
+    addTr(src, Transition(c, result));
   }
   return result;
 }
 
-TraverseResult Autom::expand(IntStack& cloned, const char* &str, bool forDelete) {
+TraverseResult Autom::expand(IntStack& cloned, const char* &str, int n, bool forDelete) {
   int state = 0;
   int prev = 0;
   TraverseResult result;
   int i = 0;
-  cloned.push(state);
-  while(*str && getTr(state, *str) != -1) {
-    prev = state;
+  cloned.push(0);
+  while(*str && getTr(state, *str).target != -1) {
     i++;
 
+    prev = state;
     removeEquiv(prev);
     state = clone(prev, *str);
     cloned.push(state);
     str++;
   }
+  removeEquiv(state);
   if(forDelete)
     return result;
-  //  removeEquiv(state);
   //  cloned.push(state);
   while(*str != 0) {
     // Add new states until minimal except
     // in the new word
     int nState = newState();
-    addTr(state, *str, nState);
+    addTr(state, Transition(*str, nState));
     cloned.push(nState);
     state = nState;
     str++;
@@ -170,27 +165,27 @@ TraverseResult Autom::expand(IntStack& cloned, const char* &str, bool forDelete)
   return result;
 }
 
-void Autom::reduce(IntStack& cloned, const char* &str) {
+void Autom::reduce(IntStack& cloned, const char* &str, int n) {
   // Offset from the end of the string
   int i = 0;
   int state;
-  // Traversing the newly added states backwards
   int equiv;
+
+  while(cloned.size() > 1 && states[cloned.peek()].outgoing == 0 && !states[cloned.peek()].isFinal) {
+    i++;
+    state = cloned.pop();
+    removeTr(cloned.peek(), *(str-i));
+  }
   while(cloned.size() > 1
 	&& (equiv = findEquiv(cloned.peek())) > 0) {
     state = cloned.peek();
     i++;
-    // state = cloned.peek();
-    // Look for an equivalent state
-    // equiv = findEquiv(state);
-    // if(equiv == -1 || equiv == state)
-    //  break; // Not found -> no more will be found
     // Found an equivalent, add a transition
     // from the previous state in the chain to the equiv.
     // and delete the obsoleted state
     cloned.pop();
     delState(state);
-    addTr(cloned.peek(), *(str - i), equiv);
+    addTr(cloned.peek(), Transition(*(str - i), equiv));
   }
   // All remaining states, including the bottom,
   // need to be added to the final machine
@@ -201,11 +196,8 @@ void Autom::reduce(IntStack& cloned, const char* &str) {
 void Autom::add(const char* const w, int n) {
   const char* str = w;
   IntStack cloned;
-  expand(cloned, str);
-  // Means we already recognize the word
-  // if(!states[cloned.peek()].isFinal)
-  //  size++;
-  reduce(cloned, str);
+  expand(cloned, str, n);
+  reduce(cloned, str, n);
 
 #ifdef DEBUG
   printf("Add %s ", w);
@@ -217,29 +209,31 @@ void Autom::remove(const char* const w) {
   // TODO: check if word is accepted before cloning
   const char* str = w;
   IntStack cloned;
-  expand(cloned, str, 1);
+  expand(cloned, str, 0, 1);
   int prev = 0;
-  while(cloned.size() > 1) {
-    str--;
-    cloned.pop();
-    prev = cloned.peek();
-    removeTr(prev, *str);
-    if(states[prev].outgoing > 0 || states[prev].isFinal)
-      break;
-  }
-  reduce(cloned, str);
+  states[cloned.peek()].isFinal = false;
+  // while(cloned.size() > 1 && !states[cloned.peek()].isFinal) {
+  //   str--;
+  //   cloned.pop();
+  //   prev = cloned.peek();
+  //   removeTr(prev, *str);
+  // }
+  reduce(cloned, str, 0);
 #ifdef DEBUG
   printf("Removing %s ", w);
   checkMinimal();
 #endif
 }
 
+// -------------------------------------------------
+// ----------- Printing methods and stats ----------
+// -------------------------------------------------
 void Autom::printDot(const char* filePath) {
   DotPrinter p(filePath);
   p.start();
   for(int i=0; i<=last; i++) {
     Autom_State& state = states[i];
-    if(state.isDeleted())
+    if(deleted.contains(i))
       continue;
     p.node(i, state.isFinal);
     TransitionIterator it(state);
@@ -335,7 +329,7 @@ void Autom::checkMinimal() {
 	  Autom_State& state = states[s];
 	  if(state.isDeleted() || classes[s] != firstStateClass || s == firstState)
 	    continue;
-	  int dest = state.getTr(i);
+	  int dest = state.getTr(i).target;
 	  int destCls = dest == -1 ? -1 : classes[dest];
 	  std::pair<CheckHashMap::iterator,bool> p = m.emplace(Check(destCls, i), newCls);
 	  if(p.second) {

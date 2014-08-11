@@ -60,12 +60,12 @@ private:
   inline void expandCapacity();
   inline int newState();
   inline void delState(int s);
-  inline int addTr(int src, unsigned int c, int dest);
-  inline int getTr(int src, unsigned int c) const;
+  inline void addTr(int src, const Transition& tr);
+  inline Transition getTr(int src, unsigned int c) const;
   inline void removeTr(int src, unsigned int c);
 
-  inline TraverseResult expand(IntStack& cloned, const char* &str, bool forDelete = 0);
-  inline void reduce(IntStack& cloned, const char* &str);
+  inline TraverseResult expand(IntStack& cloned, const char* &str, int value, bool forDelete = 0);
+  inline void reduce(IntStack& cloned, const char* &str, int n);
 
   inline int findEquiv(int state);
   inline void addEquiv(int state);
