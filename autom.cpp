@@ -131,19 +131,19 @@ int Autom::clone(int src, unsigned int c) {
   return result;
 }
 
-TraverseResult Autom::expand(IntStack& cloned, const char* &str, int n, bool forDelete) {
+TraverseResult Autom::expand(TrvStack& cloned, const char* &str, int n, bool forDelete) {
   int state = 0;
   int prev = 0;
   TraverseResult result;
   int i = 0;
-  cloned.push(0);
-  while(*str && getTr(state, *str).target != -1) {
+  Transition tr(0);
+  while(*str && (tr = getTr(state, *str)).target != -1) {
     i++;
 
     prev = state;
     removeEquiv(prev);
     state = clone(prev, *str);
-    cloned.push(state);
+    cloned.push(TrvEntry(state, *str, tr.payload));
     str++;
   }
   removeEquiv(state);
@@ -155,47 +155,49 @@ TraverseResult Autom::expand(IntStack& cloned, const char* &str, int n, bool for
     // in the new word
     int nState = newState();
     addTr(state, Transition(*str, nState));
-    cloned.push(nState);
+    cloned.push(TrvEntry(nState, *str, 0));
     state = nState;
     str++;
   }
   // Last added state - final so we'll
   // recognize the word
-  states[cloned.peek()].isFinal = 1;
+  states[cloned.peek().targetState].isFinal = 1;
   return result;
 }
 
-void Autom::reduce(IntStack& cloned, const char* &str, int n) {
+void Autom::reduce(TrvStack& cloned, const char* &str, int n) {
   // Offset from the end of the string
   int i = 0;
   int state;
   int equiv;
 
-  while(cloned.size() > 1 && states[cloned.peek()].outgoing == 0 && !states[cloned.peek()].isFinal) {
+  while(!cloned.isEmpty()
+	&& states[cloned.peek().targetState].outgoing == 0
+	&& !states[cloned.peek().targetState].isFinal) {
     i++;
-    state = cloned.pop();
-    removeTr(cloned.peek(), *(str-i));
+    state = cloned.pop().targetState;
+    removeTr(cloned.peek().targetState, *(str-i));
   }
-  while(cloned.size() > 1
-	&& (equiv = findEquiv(cloned.peek())) > 0) {
-    state = cloned.peek();
+  while(!cloned.isEmpty()
+	&& (equiv = findEquiv(cloned.peek().targetState)) > 0) {
+    state = cloned.peek().targetState;
     i++;
     // Found an equivalent, add a transition
     // from the previous state in the chain to the equiv.
     // and delete the obsoleted state
     cloned.pop();
     delState(state);
-    addTr(cloned.peek(), Transition(*(str - i), equiv));
+    addTr(cloned.peek().targetState, Transition(*(str - i), equiv));
   }
   // All remaining states, including the bottom,
   // need to be added to the final machine
   while(!cloned.isEmpty())
-    addEquiv(cloned.pop());
+    addEquiv(cloned.pop().targetState);
 }
 
 void Autom::add(const char* const w, int n) {
   const char* str = w;
-  IntStack cloned;
+  TrvStack cloned;
   expand(cloned, str, n);
   reduce(cloned, str, n);
 
@@ -208,16 +210,9 @@ void Autom::add(const char* const w, int n) {
 void Autom::remove(const char* const w) {
   // TODO: check if word is accepted before cloning
   const char* str = w;
-  IntStack cloned;
+  TrvStack cloned;
   expand(cloned, str, 0, 1);
-  int prev = 0;
-  states[cloned.peek()].isFinal = false;
-  // while(cloned.size() > 1 && !states[cloned.peek()].isFinal) {
-  //   str--;
-  //   cloned.pop();
-  //   prev = cloned.peek();
-  //   removeTr(prev, *str);
-  // }
+  states[cloned.peek().targetState].isFinal = false;
   reduce(cloned, str, 0);
 #ifdef DEBUG
   printf("Removing %s ", w);
