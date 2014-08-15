@@ -28,16 +28,6 @@ private:
   int n;
 };
 
-struct TrvEntry {
-  TrvEntry(const TrvEntry& e):
-    targetState(e.targetState),ch(e.ch),output(e.output) {};
-  TrvEntry(int targetState, int ch, int output):
-    targetState(targetState),ch(ch),output(output) {};
-  int targetState;
-  int ch;
-  int output;
-};
-typedef Stack<TrvEntry> TrvStack;
 typedef Stack<int> IntStack;
 
 template<class T>

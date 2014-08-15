@@ -180,6 +180,7 @@ void Autom::reduce(TrvStack& cloned, const char* &str, int n) {
   }
   while(!cloned.isEmpty()
 	&& (equiv = findEquiv(cloned.peek().targetState)) > 0) {
+    
     state = cloned.peek().targetState;
     i++;
     // Found an equivalent, add a transition
@@ -189,7 +190,7 @@ void Autom::reduce(TrvStack& cloned, const char* &str, int n) {
     delState(state);
     addTr(cloned.peek().targetState, Transition(*(str - i), equiv));
   }
-  // All remaining states, including the bottom,
+  // All remaining states,
   // need to be added to the final machine
   while(!cloned.isEmpty())
     addEquiv(cloned.pop().targetState);
