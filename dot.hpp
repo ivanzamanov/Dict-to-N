@@ -8,7 +8,7 @@ struct DotPrinter {
   const char* const filePath;
   void start();
   void end();
-  void edge(int src, char label, int  dest);
+  void edge(int src, char label, int  dest, int payload);
   void node(int id, bool isFinal);
 private:
   FILE* file;

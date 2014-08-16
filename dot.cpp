@@ -18,9 +18,9 @@ void DotPrinter::end() {
     printf("}\n");
 }
 
-void DotPrinter::edge(int src, char label, int dest) {
+void DotPrinter::edge(int src, char label, int dest, int payload) {
   if(filePath != 0)
-    fprintf(file, "%d -> %d [label=\"%c\"]\n", src, dest, label);
+    fprintf(file, "%d -> %d [label=\"%c:%d\"]\n", src, dest, label, payload);
   else
     printf("%d -> %d [label=\"%c\"]\n", src, dest, label);
 }

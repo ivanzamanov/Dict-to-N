@@ -1,6 +1,5 @@
 #include<cstdio>
 #include<unordered_map>
-#include<functional>
 
 #include"autom.hpp"
 #include"dot.hpp"
@@ -47,7 +46,6 @@ bool Autom::equalStates(int s1, int s2) const {
 }
 
 void Autom::delState(int s) {
-  //  states[s].isDeleted = 1;
   deleted.push(s);
   TransitionIterator it(states[s]);
   while(it.hasNext()) {
@@ -137,6 +135,7 @@ TraverseResult Autom::expand(TrvStack& cloned, const char* &str, int n, bool for
   TraverseResult result;
   int i = 0;
   Transition tr(0);
+  int remaining = n;
   while(*str && (tr = getTr(state, *str)).target != -1) {
     i++;
 
@@ -149,12 +148,12 @@ TraverseResult Autom::expand(TrvStack& cloned, const char* &str, int n, bool for
   removeEquiv(state);
   if(forDelete)
     return result;
-  //  cloned.push(state);
   while(*str != 0) {
     // Add new states until minimal except
     // in the new word
     int nState = newState();
-    addTr(state, Transition(*str, nState));
+    Transition toAdd(*str, nState, remaining);
+    addTr(state, toAdd);
     cloned.push(TrvEntry(nState, *str, 0));
     state = nState;
     str++;
@@ -236,7 +235,7 @@ void Autom::printDot(const char* filePath) {
     while(it.hasNext()) {
       Transition tr = it.next();
       if(!states[tr.target].isDeleted())
-	p.edge(i, tr.c, tr.target);
+	p.edge(i, tr.c, tr.target, tr.payload);
     }
   }
   p.end();

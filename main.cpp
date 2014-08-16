@@ -90,11 +90,11 @@ void doWork(char* data, int size) {
   // }
   // a.printStats();
 
-  a.add("11", 6);
-  a.add("111", 7);
-  a.add("0", 7);
-  a.add("01", 5);
-  a.remove("111");
-  a.remove("11");
+  a.add("aa", 6);
+  a.add("aaa", 7);
+  a.add("b", 7);
+  a.add("ba", 5);
+  //  a.remove("aaa");
+  //  a.remove("aa");
   a.printDot("/tmp/temp.dot");
 }
