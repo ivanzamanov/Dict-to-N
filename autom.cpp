@@ -90,11 +90,6 @@ int Autom::get(const char* const w) const {
 }
 
 int Autom::findEquiv(int state) {
-  /*  StateSet::const_iterator found = eqSet.find(state);
-  if(found == eqSet.end())
-    return -1;
-  else
-  return *found;*/
   int h = states[state].getHash();
   int result = equivs->get(state, h);
   return result;
@@ -111,56 +106,78 @@ void Autom::removeEquiv(int state) {
 }
 
 // clone the destination for the given transition
-int Autom::clone(int src, unsigned int c) {
-  int oldDest = getTr(src, c).target;
+int Autom::clone(int src, Transition& tr) {
+  int oldDest = tr.target;
   Autom_State& oldDestState = states[oldDest];
   int result;
-  if(oldDestState.incoming == 1)
+  if(oldDestState.incoming == 1) {
+    addTr(src, tr);
+    oldDestState.incoming--;
     result = oldDest;
-  else {
+  } else {
     result = newState();
     Autom_State& resultState = states[result];
     resultState.copyTransitions(oldDestState, states);
     resultState.isFinal = oldDestState.isFinal;
     resultState.outgoing = oldDestState.outgoing;
-    removeTr(src, c);
-    addTr(src, Transition(c, result));
+    removeTr(src, tr.c);
+    tr = Transition(tr.c, result, tr.payload);
+    addTr(src, tr);
   }
   return result;
+}
+
+static int min(int i1, int i2) {
+  return (i1 > i2) ? i2 : i1;
 }
 
 TraverseResult Autom::expand(TrvStack& cloned, const char* &str, int n, bool forDelete) {
   int state = 0;
   int prev = 0;
   TraverseResult result;
-  int i = 0;
   Transition tr(0);
-  int remaining = n;
+  int currentOutput = 0;
+  int totalOutput = 0;
   while(*str && (tr = getTr(state, *str)).target != -1) {
-    i++;
+    int prevOutput = currentOutput;
+    currentOutput = min(currentOutput + tr.payload, n);
+    totalOutput += tr.payload;
 
     prev = state;
     removeEquiv(prev);
-    state = clone(prev, *str);
+    
+    tr.payload = currentOutput - prevOutput;
+    state = clone(prev, tr);
+    TransitionIterator it(states[state]);
+    while(it.hasNext()) {
+      Transition& nextTr = it.next();
+      if(nextTr.c != *(str+1))
+	nextTr.payload = (totalOutput + nextTr.payload) - currentOutput;
+    }
+    if(states[state].isFinal)
+      states[state].payload = (totalOutput + states[state].payload) - currentOutput;
     cloned.push(TrvEntry(state, *str, tr.payload));
     str++;
   }
   removeEquiv(state);
   if(forDelete)
     return result;
+  int remaining = n - min(currentOutput, n);
   while(*str != 0) {
     // Add new states until minimal except
     // in the new word
     int nState = newState();
     Transition toAdd(*str, nState, remaining);
     addTr(state, toAdd);
-    cloned.push(TrvEntry(nState, *str, 0));
+    cloned.push(TrvEntry(nState, *str, remaining));
+    remaining = 0;
     state = nState;
     str++;
   }
   // Last added state - final so we'll
   // recognize the word
   states[cloned.peek().targetState].isFinal = 1;
+  states[cloned.peek().targetState].payload = remaining;
   return result;
 }
 
@@ -181,13 +198,14 @@ void Autom::reduce(TrvStack& cloned, const char* &str, int n) {
 	&& (equiv = findEquiv(cloned.peek().targetState)) > 0) {
     
     state = cloned.peek().targetState;
+    int output = cloned.peek().output;
     i++;
     // Found an equivalent, add a transition
     // from the previous state in the chain to the equiv.
     // and delete the obsoleted state
     cloned.pop();
     delState(state);
-    addTr(cloned.peek().targetState, Transition(*(str - i), equiv));
+    addTr(cloned.peek().targetState, Transition(*(str - i), equiv, output));
   }
   // All remaining states,
   // need to be added to the final machine
@@ -230,7 +248,7 @@ void Autom::printDot(const char* filePath) {
     Autom_State& state = states[i];
     if(deleted.contains(i))
       continue;
-    p.node(i, state.isFinal);
+    p.node(i, state.payload, state.isFinal);
     TransitionIterator it(state);
     while(it.hasNext()) {
       Transition tr = it.next();

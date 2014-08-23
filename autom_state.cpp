@@ -19,7 +19,7 @@ void initTransitions(Transition* tr, int count) {
 static int initialCap = 1;
 void initState(Autom_State* ptr) {
   ptr->isFinal = 0;
-  //  ptr->isDeleted = 0;
+  ptr->payload = 0;
   ptr->tr = (Transition*) malloc(initialCap * sizeof(Transition));
   initTransitions(ptr->tr, initialCap);
   ptr->cap = initialCap;
@@ -124,20 +124,21 @@ int Autom_State::getHash() const {
   TransitionIterator it(*this);
   while(it.hasNext()) {
     Transition tr = it.next();
-    result = (result + tr.target + tr.c) * outgoing;
+    result = (result + tr.target + tr.c + tr.payload) * outgoing;
   }
+  result += payload;
   return result < 0 ? -result : result;
 }
 
 bool Autom_State::operator==(const Autom_State& other) const {
-  if(isFinal != other.isFinal || outgoing != other.outgoing)
+  if(isFinal != other.isFinal || outgoing != other.outgoing || payload != other.payload)
     return 0;
   TransitionIterator it1(*this);
   TransitionIterator it2(other);
   while(it1.hasNext() && it2.hasNext()) {
     Transition tr1 = it1.next();
     Transition tr2 = it2.next();
-    if(tr1.c != tr2.c || tr1.target != tr2.target)
+    if(tr1.c != tr2.c || tr1.target != tr2.target || tr1.payload != tr2.payload)
       return false;
   }
   return it1.hasNext() == it2.hasNext();
@@ -157,7 +158,7 @@ bool TransitionIterator::hasNext() {
   return nextIndex >= 0;
 }
 
-const Transition& TransitionIterator::next() {
+Transition& TransitionIterator::next() {
   int result = nextIndex;
   find(state, nextIndex + 1, nextIndex);
   return state.tr[result];

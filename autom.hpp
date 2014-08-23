@@ -67,7 +67,7 @@ private:
   hash* equivs;
   int size;
 
-  inline int clone(int src, unsigned int c);
+  inline int clone(int src, Transition& tr);
   inline void expandCapacity();
   inline int newState();
   inline void delState(int s);

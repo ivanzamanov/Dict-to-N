@@ -25,7 +25,7 @@ struct Autom_State {
 
   short outgoing;
   bool isFinal;
-  //  bool isDeleted;
+  unsigned int payload;
 
   bool isDeleted();
   int transitionCount() const;
@@ -44,7 +44,7 @@ class TransitionIterator {
 public:
   TransitionIterator(const Autom_State& state):state(state) { begin(); }
   void begin();
-  const Transition& next();
+  Transition& next();
   bool hasNext();
 
 private:
