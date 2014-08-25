@@ -75,7 +75,8 @@ private:
   inline Transition getTr(int src, unsigned int c) const;
   inline void removeTr(int src, unsigned int c);
 
-  inline TraverseResult expand(TrvStack& cloned, const char* &str, int value, bool forDelete = 0);
+  inline void expandForAdd(TrvStack& cloned, const char* &str, int value);
+  inline void expandForDelete(TrvStack& cloned, const char* &str);
   inline void reduce(TrvStack& cloned, const char* &str, int n);
 
   inline int findEquiv(int state);

@@ -131,10 +131,9 @@ static int min(int i1, int i2) {
   return (i1 > i2) ? i2 : i1;
 }
 
-TraverseResult Autom::expand(TrvStack& cloned, const char* &str, int n, bool forDelete) {
+void Autom::expandForAdd(TrvStack& cloned, const char* &str, int n) {
   int state = 0;
   int prev = 0;
-  TraverseResult result;
   Transition tr(0);
   int currentOutput = 0;
   int totalOutput = 0;
@@ -160,8 +159,7 @@ TraverseResult Autom::expand(TrvStack& cloned, const char* &str, int n, bool for
     str++;
   }
   removeEquiv(state);
-  if(forDelete)
-    return result;
+
   int remaining = n - min(currentOutput, n);
   while(*str != 0) {
     // Add new states until minimal except
@@ -178,7 +176,22 @@ TraverseResult Autom::expand(TrvStack& cloned, const char* &str, int n, bool for
   // recognize the word
   states[cloned.peek().targetState].isFinal = 1;
   states[cloned.peek().targetState].payload = remaining;
-  return result;
+}
+
+void Autom::expandForDelete(TrvStack& cloned, const char* &str) {
+  int state = 0;
+  int prev = 0;
+  Transition tr(0);
+
+  while(*str && (tr = getTr(state, *str)).target != -1) {
+    prev = state;
+    removeEquiv(prev);
+    
+    state = clone(prev, tr);
+    cloned.push(TrvEntry(state, *str, tr.payload));
+    str++;
+  }
+  removeEquiv(state);
 }
 
 void Autom::reduce(TrvStack& cloned, const char* &str, int n) {
@@ -216,7 +229,7 @@ void Autom::reduce(TrvStack& cloned, const char* &str, int n) {
 void Autom::add(const char* const w, int n) {
   const char* str = w;
   TrvStack cloned;
-  expand(cloned, str, n);
+  expandForAdd(cloned, str, n);
   reduce(cloned, str, n);
 
 #ifdef DEBUG
@@ -229,7 +242,7 @@ void Autom::remove(const char* const w) {
   // TODO: check if word is accepted before cloning
   const char* str = w;
   TrvStack cloned;
-  expand(cloned, str, 0, 1);
+  expandForDelete(cloned, str);
   states[cloned.peek().targetState].isFinal = false;
   reduce(cloned, str, 0);
 #ifdef DEBUG
