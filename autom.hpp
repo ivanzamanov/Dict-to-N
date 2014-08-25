@@ -7,7 +7,6 @@
 class Autom;
 struct entry;
 struct hash;
-struct TraverseResult;
 
 struct hash {
   hash(const Autom& automaton);
@@ -76,7 +75,7 @@ private:
   inline void removeTr(int src, unsigned int c);
 
   inline void expandForAdd(TrvStack& cloned, const char* &str, int value);
-  inline void expandForDelete(TrvStack& cloned, const char* &str);
+  inline void expandForRemove(TrvStack& cloned, const char* &str);
   inline void reduce(TrvStack& cloned, const char* &str, int n);
 
   inline int findEquiv(int state);
@@ -91,11 +90,6 @@ struct entry {
   int key;
   int hash;
   entry* next;
-};
-
-struct TraverseResult {
-  TraverseResult():lastBranch(-1) { };
-  int lastBranch;
 };
 
 #endif

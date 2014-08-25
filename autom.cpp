@@ -178,7 +178,7 @@ void Autom::expandForAdd(TrvStack& cloned, const char* &str, int n) {
   states[cloned.peek().targetState].payload = remaining;
 }
 
-void Autom::expandForDelete(TrvStack& cloned, const char* &str) {
+void Autom::expandForRemove(TrvStack& cloned, const char* &str) {
   int state = 0;
   int prev = 0;
   Transition tr(0);
