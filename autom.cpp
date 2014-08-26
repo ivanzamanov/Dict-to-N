@@ -131,6 +131,14 @@ static int min(int i1, int i2) {
   return (i1 > i2) ? i2 : i1;
 }
 
+static int lcp(int i1, int i2) {
+  return min(i1, i2);
+}
+
+static int sum(int i1, int i2) {
+  return i1 + i2;
+}
+
 void Autom::expandForAdd(TrvStack& cloned, const char* &str, int n) {
   int state = 0;
   int prev = 0;
@@ -139,28 +147,28 @@ void Autom::expandForAdd(TrvStack& cloned, const char* &str, int n) {
   int totalOutput = 0;
   while(*str && (tr = getTr(state, *str)).target != -1) {
     int prevOutput = currentOutput;
-    currentOutput = min(currentOutput + tr.payload, n);
-    totalOutput += tr.payload;
+    currentOutput = lcp(currentOutput + tr.payload, n);
+    totalOutput = sum(totalOutput, tr.payload);
 
     prev = state;
     removeEquiv(prev);
     
-    tr.payload = currentOutput - prevOutput;
+    tr.payload = sum(-prevOutput, currentOutput);
     state = clone(prev, tr);
     TransitionIterator it(states[state]);
     while(it.hasNext()) {
       Transition& nextTr = it.next();
       if(nextTr.c != *(str+1))
-	nextTr.payload = (totalOutput + nextTr.payload) - currentOutput;
+	nextTr.payload = sum(-currentOutput, sum(totalOutput, nextTr.payload));
     }
     if(states[state].isFinal)
-      states[state].payload = (totalOutput + states[state].payload) - currentOutput;
+      states[state].payload = sum(-currentOutput, sum(totalOutput, states[state].payload));
     cloned.push(TrvEntry(state, *str, tr.payload));
     str++;
   }
   removeEquiv(state);
 
-  int remaining = n - min(currentOutput, n);
+  int remaining = sum(-min(currentOutput, n), n);
   while(*str != 0) {
     // Add new states until minimal except
     // in the new word
@@ -242,7 +250,7 @@ void Autom::remove(const char* const w) {
   // TODO: check if word is accepted before cloning
   const char* str = w;
   TrvStack cloned;
-  expandForDelete(cloned, str);
+  expandForRemove(cloned, str);
   states[cloned.peek().targetState].isFinal = false;
   reduce(cloned, str, 0);
 #ifdef DEBUG

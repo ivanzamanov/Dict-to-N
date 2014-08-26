@@ -95,7 +95,8 @@ void doWork(char* data, int size) {
   a.add("baa", 9);
   a.add("b", 7);
   a.add("ba", 6);
-  //  a.remove("aaa");
+  a.remove("baa");
+  a.remove("ba");
   //  a.remove("aa");
   a.printDot("/tmp/temp.dot");
 }
