@@ -252,6 +252,7 @@ void Autom::remove(const char* const w) {
   TrvStack cloned;
   expandForRemove(cloned, str);
   states[cloned.peek().targetState].isFinal = false;
+  states[cloned.peek().targetState].payload = 0;
   reduce(cloned, str, 0);
 #ifdef DEBUG
   printf("Removing %s ", w);
