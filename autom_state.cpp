@@ -69,7 +69,7 @@ Transition Autom_State::getTr(unsigned int c) const {
     if(tr[i].c == sgc)
       return tr[i];
   }
-  return -1;
+  return Transition(-1);
 }
 
 void Autom_State::addTr(const Transition& trans) {
@@ -126,7 +126,6 @@ int Autom_State::getHash() const {
     Transition tr = it.next();
     result = (result + tr.target + tr.c + tr.payload) * outgoing;
   }
-  result += payload;
   return result < 0 ? -result : result;
 }
 

@@ -8,10 +8,46 @@
 #include<vector>
 #include<string>
 #include<cstring>
+#include<vector>
 
 #include"autom.hpp"
 
-void doWork(char* data, int size);
+typedef std::vector<char*> StringVector;
+void readStrings(char* data, int size, StringVector& vec);
+void doWork(char* data, int size) {
+  Autom a;
+  StringVector strings;
+  readStrings(data, size, strings);
+  StringVector::iterator it = strings.begin();
+  int count = 0;
+  while(it != strings.end()) {
+    count++;
+    a.add(*it);
+    it++;
+    if(count % 1000 == 0)
+      printf("Words: %d\n", count);
+  }
+  printf("Processed %d words\n", count);
+  delete[] data;
+  while(!strings.empty()) {
+    char* str = strings.back();
+    strings.pop_back();
+    delete[] str;
+  }
+  a.printStats();
+}
+
+void test1() {
+  Autom a;
+  a.add("aa", 10);
+  a.add("aaa", 7);
+  a.add("baa", 9);
+  a.add("b", 7);
+  a.add("ba", 4);
+  a.remove("baa");
+  a.remove("ba");
+  a.printDot("/tmp/temp.dot");
+}
 
 int main(int argc, const char** argv) {
   argc = 2;
@@ -37,13 +73,14 @@ int main(int argc, const char** argv) {
   char* data = new char[size + 1];
   read(fd, data, size);
   data[size] = 0;
-  doWork(data, size);
+  test1();
+  //  doWork(data, size);
 }
 
-typedef std::vector<char*> StringVector;
 inline bool isWhitespace(char c) {
   return c && c == '\n';
 }
+
 void readStrings(char* data, int size, StringVector& vec) {
   int offset=0;
   while(offset < size) {
@@ -61,42 +98,11 @@ void readStrings(char* data, int size, StringVector& vec) {
     offset++;
   }
 }
+
 void printStrings(StringVector& vec) {
   StringVector::iterator it = vec.begin();
   while(it != vec.end()) {
     printf("%s\n", *it);
     ++it;
   }
-}
-void doWork(char* data, int size) {
-  Autom a;
-  // StringVector strings;
-  // readStrings(data, size, strings);
-  // StringVector::iterator it = strings.begin();
-  // int count = 0;
-  // while(it != strings.end()) {
-  //   count++;
-  //   a.add(*it);
-  //   it++;
-  //   if(count % 1000 == 0)
-  //     printf("Words: %d\n", count);
-  // }
-  // printf("Processed %d words\n", count);
-  // delete[] data;
-  // while(!strings.empty()) {
-  //   char* str = strings.back();
-  //   strings.pop_back();
-  //   delete[] str;
-  // }
-  // a.printStats();
-
-  a.add("aa", 6);
-  a.add("aaa", 7);
-  a.add("baa", 9);
-  a.add("b", 7);
-  a.add("ba", 6);
-  a.remove("baa");
-  a.remove("ba");
-  //  a.remove("aa");
-  a.printDot("/tmp/temp.dot");
 }

@@ -71,12 +71,14 @@ private:
   inline int newState();
   inline void delState(int s);
   inline void addTr(int src, const Transition& tr);
+  inline void replaceTrOutput(int src, const Transition& tr);
   inline Transition getTr(int src, unsigned int c) const;
   inline void removeTr(int src, unsigned int c);
 
   inline void expandForAdd(TrvStack& cloned, const char* &str, int value);
   inline void expandForRemove(TrvStack& cloned, const char* &str);
-  inline void reduce(TrvStack& cloned, const char* &str, int n);
+  inline void reduceForAdd(TrvStack& cloned, const char* &str);
+  inline void reduceForRemove(TrvStack& cloned, const char* &str);
 
   inline int findEquiv(int state);
   inline void addEquiv(int state);
