@@ -57,13 +57,10 @@ void Autom::delState(int s) {
   }
 }
 
-void Autom::addTr(int src, const Transition& tr) {
+void Autom::addTr(int src, const Transition& tr, bool isReplace = false) {
   states[src].addTr(tr);
-  states[tr.target].trAdded();
-};
-
-void Autom::replaceTrOutput(int src, const Transition& tr) {
-  states[src].addTr(tr);
+  if(!isReplace)
+    states[tr.target].trAdded();
 };
 
 Transition Autom::getTr(int src, unsigned int c) const {
@@ -150,6 +147,7 @@ void Autom::expandForAdd(TrvStack& cloned, const char* &str, int n) {
   Transition tr(0);
   int currentOutput = 0;
   int totalOutput = 0;
+  cloned.push(TrvEntry(state, 0, 0));
   while(*str && (tr = getTr(state, *str)).target != -1) {
     int prevOutput = currentOutput;
     currentOutput = lcp(currentOutput + tr.payload, n);
@@ -208,10 +206,10 @@ void Autom::expandForRemove(TrvStack& cloned, const char* &str) {
   removeEquiv(state);
 }
 
-static int lcpOutgoingTransitions(TransitionIterator& it, int except, int originalPayload) {
-  int result = 0;
+static int lcpOutgoingTransitions(TransitionIterator& it, int except, unsigned int originalPayload) {
   if(!it.hasNext())
-    return originalPayload;
+    return 0;
+  int result = originalPayload;
   while(it.hasNext()) {
     Transition& tr = it.next();
     if(tr.c != except)
@@ -220,61 +218,68 @@ static int lcpOutgoingTransitions(TransitionIterator& it, int except, int origin
   return result;
 }
 
+static void pushBack(Autom_State* states, TrvStack& cloned, int& lcpValue) {
+  TrvEntry entry = cloned.pop();
+  int currentState = entry.targetState;
+
+  TransitionIterator it(states[currentState]);
+  lcpValue = lcpOutgoingTransitions(it, 0, states[currentState].payload);
+  if(states[currentState].isFinal) {
+    lcpValue = lcp(states[currentState].payload, lcpValue);
+    unsigned int& pl = states[currentState].payload;
+    pl = sum(-lcpValue, pl);
+  }
+  it.begin();
+  while(it.hasNext()) {
+    Transition& tr = it.next();
+    tr.payload -= lcpValue;
+  }
+}
+
 void Autom::reduceForRemove(TrvStack& cloned, const char* &str) {
-  // Offset from the end of the string
-  int i = 0;
-  int state;
+  int pushedBack;
+
+  TrvEntry entry = cloned.peek();
+  // TODO: Move to method
+  states[entry.targetState].isFinal = false;
+  states[entry.targetState].payload = NON_FINAL_PAYLOAD;
+
+  pushBack(states, cloned, pushedBack);
+  Transition tr(entry.ch, entry.targetState, sum(pushedBack, entry.output));
+  addTr(cloned.peek().targetState, tr, true);
+  if(states[entry.targetState].outgoing == 0)
+    removeTr(cloned.peek().targetState, entry.ch);
 
   while(!cloned.isEmpty()
 	&& states[cloned.peek().targetState].outgoing == 0
 	&& !states[cloned.peek().targetState].isFinal) {
-    i++;
-    state = cloned.pop().targetState;
-    removeTr(cloned.peek().targetState, *(str-i));
+    entry = cloned.peek();
+    pushBack(states, cloned, pushedBack);
+    removeTr(cloned.peek().targetState, entry.ch);
   }
+
   while(cloned.size() > 1) {
-    i++;
-    TrvEntry entry = cloned.peek();
-    state = entry.targetState;
-    bool isFinal = states[entry.targetState].isFinal;
-    int lcpValue = isFinal ? states[entry.targetState].payload : 0;
-    TransitionIterator it(states[entry.targetState]);
-    lcpValue = lcp(lcpValue, lcpOutgoingTransitions(it, entry.ch, lcpValue));
-    cloned.pop();
-    if(isFinal) {
-      unsigned int& pl = states[state].payload;
-      pl = sum(-lcpValue, pl);
-      Transition tr(*(str - i), state, sum(lcpValue, entry.output));
-      replaceTrOutput(cloned.peek().targetState, tr);
-    }
+    entry = cloned.peek();
+    pushBack(states, cloned, pushedBack);
+    Transition tr(entry.ch, entry.targetState, sum(pushedBack, entry.output));
+    addTr(cloned.peek().targetState, tr, true);
+
     int equiv;
-    if((equiv = findEquiv(state)) <= 0)
+    if((equiv = findEquiv(entry.targetState)) <= 0)
       break;
     // Found an equivalent, add a transition
     // from the previous state in the chain to the equiv.
     // and delete the obsoleted state
-    delState(state);
-    Transition tr(*(str - i), equiv, sum(lcpValue, entry.output));
+    delState(entry.targetState);
+    tr = Transition(entry.ch, equiv, sum(pushedBack, entry.output));
     addTr(cloned.peek().targetState, tr);
   }
   // All remaining states,
   // need to be added to the final machine
   while(cloned.size() > 1) {
-    TrvEntry entry = cloned.peek();
-    state = entry.targetState;
-    bool isFinal = states[entry.targetState].isFinal;
-    int lcpValue = isFinal ? states[entry.targetState].payload : 0;
-    TransitionIterator it(states[entry.targetState]);
-    lcpValue += lcpOutgoingTransitions(it, entry.ch, lcpValue);
-    if(isFinal) {
-      unsigned int& pl = states[state].payload;
-      pl = sum(-lcpValue, pl);
-      Transition tr(entry.ch, state, sum(lcpValue, entry.output));
-      replaceTrOutput(cloned.pop().targetState, tr);
-    } else
-      cloned.pop();
-    
-    addEquiv(state);
+    entry = cloned.peek();
+    pushBack(states, cloned, pushedBack);
+    addEquiv(entry.targetState);
   }
 }
 
@@ -326,8 +331,6 @@ void Autom::remove(const char* const w) {
   const char* str = w;
   TrvStack cloned;
   expandForRemove(cloned, str);
-  states[cloned.peek().targetState].isFinal = false;
-  states[cloned.peek().targetState].payload = 0;
   reduceForRemove(cloned, str);
 #ifdef DEBUG
   printf("Removing %s ", w);

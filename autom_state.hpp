@@ -1,5 +1,9 @@
+#include<climits>
+
 #ifndef __AUTOM_STATE_H__
 #define __AUTOM_STATE_H__
+
+#define NON_FINAL_PAYLOAD INT_MAX
 
 struct Transition {
   Transition(int c, int target, unsigned int payload)

@@ -70,8 +70,7 @@ private:
   inline void expandCapacity();
   inline int newState();
   inline void delState(int s);
-  inline void addTr(int src, const Transition& tr);
-  inline void replaceTrOutput(int src, const Transition& tr);
+  inline void addTr(int src, const Transition& tr, bool isReplace);
   inline Transition getTr(int src, unsigned int c) const;
   inline void removeTr(int src, unsigned int c);
 

@@ -19,7 +19,7 @@ void initTransitions(Transition* tr, int count) {
 static int initialCap = 1;
 void initState(Autom_State* ptr) {
   ptr->isFinal = 0;
-  ptr->payload = 0;
+  ptr->payload = NON_FINAL_PAYLOAD;
   ptr->tr = (Transition*) malloc(initialCap * sizeof(Transition));
   initTransitions(ptr->tr, initialCap);
   ptr->cap = initialCap;

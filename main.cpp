@@ -37,6 +37,27 @@ void doWork(char* data, int size) {
   a.printStats();
 }
 
+void test3() {
+  Autom a;
+  a.add("aa", 10);
+  a.add("aaa", 7);
+  a.add("baa", 9);
+  a.add("b", 7);
+  a.add("ba", 4);
+  a.remove("ba");
+  a.remove("baa");
+  a.printDot("/tmp/temp.dot");
+}
+
+void test2() {
+  Autom a;
+  a.add("aa", 10);
+  a.add("aaa", 7);
+  a.add("b", 7);
+  a.add("baa", 9);
+  a.printDot("/tmp/temp.dot");
+}
+
 void test1() {
   Autom a;
   a.add("aa", 10);
@@ -44,8 +65,8 @@ void test1() {
   a.add("baa", 9);
   a.add("b", 7);
   a.add("ba", 4);
-  a.remove("baa");
   a.remove("ba");
+  //  a.remove("baa");
   a.printDot("/tmp/temp.dot");
 }
 
@@ -74,6 +95,7 @@ int main(int argc, const char** argv) {
   read(fd, data, size);
   data[size] = 0;
   test1();
+  test2();
   //  doWork(data, size);
 }
 

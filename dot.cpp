@@ -26,8 +26,10 @@ void DotPrinter::edge(int src, char label, int dest, int payload) {
 }
 
 void DotPrinter::node(int id, int output, bool isFinal) {
+  const char* shape = isFinal ? "doublecircle" : "circle";
+  int labelOutput = isFinal ? output : 0;
   if(filePath != 0)
-    fprintf(file, "%d [label=\"%d:%d\"shape=%s]\n", id, id, output, isFinal ? "doublecircle" : "circle");
+    fprintf(file, "%d [label=\"%d:%d\"shape=%s]\n", id, id, labelOutput, shape);
   else
-    printf("%d [shape=%s]\n", id, isFinal ? "doublecircle" : "circle");
+    printf("%d [label=\"%d:%d\"shape=%s]\n", id, id, labelOutput, shape);
 }
