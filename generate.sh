@@ -5,5 +5,5 @@ do
 	if [ 0 -eq `expr $c % 1000` ]; then
 		echo $c
 	fi
-	uuidgen >> data.txt
+	echo `uuidgen` " " $RANDOM >> data.txt
 done

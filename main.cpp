@@ -22,7 +22,11 @@ void doWork(char* data, int size) {
   int count = 0;
   while(it != strings.end()) {
     count++;
-    a.add(*it);
+    const char* key = *it;
+    it++;
+    const char* valueStr = *it;
+    int value = atoi(valueStr);
+    a.add(key, value);
     it++;
     if(count % 1000 == 0)
       printf("Words: %d\n", count);
@@ -97,11 +101,11 @@ int main(int argc, const char** argv) {
   test1();
   test2();
   test3();
-  //  doWork(data, size);
+  doWork(data, size);
 }
 
 inline bool isWhitespace(char c) {
-  return c && c == '\n';
+  return c == 0 || c == '\n' || c == ' ';
 }
 
 void readStrings(char* data, int size, StringVector& vec) {
@@ -113,9 +117,9 @@ void readStrings(char* data, int size, StringVector& vec) {
       i++;
       ptr++;
     }
-    char* str = new char[i];
-    strncpy(str, data + offset, i);
-    str[i-1] = 0;
+    char* str = new char[i+1];
+    strncpy(str, data + offset, i+1);
+    str[i] = 0;
     offset += i;
     vec.push_back(str);
     offset++;
