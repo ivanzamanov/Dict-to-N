@@ -285,28 +285,26 @@ void Autom::reduceForRemove(TrvStack& cloned, const char* &str) {
 
 void Autom::reduceForAdd(TrvStack& cloned, const char* &str) {
   // Offset from the end of the string
-  int i = 0;
   int state;
   int equiv;
 
   while(!cloned.isEmpty()
 	&& states[cloned.peek().targetState].outgoing == 0
 	&& !states[cloned.peek().targetState].isFinal) {
-    i++;
-    state = cloned.pop().targetState;
-    removeTr(cloned.peek().targetState, *(str-i));
+    TrvEntry entry = cloned.pop();
+    state = entry.targetState;
+    removeTr(cloned.peek().targetState, entry.ch);
   }
   while(!cloned.isEmpty()
 	&& (equiv = findEquiv(cloned.peek().targetState)) > 0) {
     TrvEntry entry = cloned.peek();
     state = entry.targetState;
-    i++;
     // Found an equivalent, add a transition
     // from the previous state in the chain to the equiv.
     // and delete the obsoleted state
     cloned.pop();
     delState(state);
-    addTr(cloned.peek().targetState, Transition(*(str - i), equiv, entry.output));
+    addTr(cloned.peek().targetState, Transition(entry.ch, equiv, entry.output));
   }
   // All remaining states,
   // need to be added to the final machine

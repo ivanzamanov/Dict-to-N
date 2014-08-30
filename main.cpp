@@ -96,6 +96,7 @@ int main(int argc, const char** argv) {
   data[size] = 0;
   test1();
   test2();
+  test3();
   //  doWork(data, size);
 }
 
