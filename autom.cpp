@@ -6,21 +6,19 @@
 
 Autom::Autom():cap(4), last(0), size(0) {
   states = allocateStates(cap);
+  states[0].init();
   states[0].incoming = 1;
   equivs = new hash(*this);
 };
 
 Autom::~Autom() {
-  deallocateStates(states, cap);
+  deallocateStates(states, size);
   delete equivs;
 };
 
 void Autom::expandCapacity() {
   int newSize = cap * 1.6;
   states = reallocateStates(states, cap, newSize);
-  for(int i=cap; i < newSize; i++) {
-    states[i].reset();
-  }
   cap = newSize;
 };
 
@@ -31,13 +29,14 @@ int Autom::newState() {
     if(last == cap - 1)
       expandCapacity();
     state = ++last;
-  stateCount++;
-  if(stateCount % 100000 == 0)
-    printf("States: %d\n", stateCount);
+
+    stateCount++;
+    if(stateCount % 100000 == 0)
+      printf("States: %d\n", stateCount);
   } else {
     state = deleted.pop();
   }
-  states[state].reset();
+  states[state].init();
   return state;
 };
 
@@ -46,6 +45,7 @@ bool Autom::equalStates(int s1, int s2) const {
 }
 
 void Autom::delState(int s) {
+  states[s].destroy();
   deleted.push(s);
   TransitionIterator it(states[s]);
   while(it.hasNext()) {

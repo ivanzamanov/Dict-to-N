@@ -1,13 +1,71 @@
 #include<cstdlib>
 #include<cstring>
 
+#include"stack.hpp"
 #include"autom_state.hpp"
 
-void deallocateStates(Autom_State* ptr, int size) {
-  for(int i=0; i<size; i++)
-    free(ptr[i].tr);
-  free(ptr);
-};
+#define MAX_TR 256
+#define LOG(var)				\
+  printf(#var);					\
+  printf(" = %d", var);				\
+  printf("\n");
+
+typedef Stack<Transition*> TrPool;
+static TrPool pools[MAX_TR];
+static int allocTrCalls = 0;
+static int allocTrHits = 0;
+static int allocTrMiss = 0;
+
+static int reallocTrCalls = 0;
+static int reallocTrHits = 0;
+static int reallocTrMiss = 0;
+
+static int deallocTrCalls = 0;
+
+void printPools() {
+  for(int i=0; i<MAX_TR; i++) {
+    if(!pools[i].isEmpty())
+      printf("Pool %d = %d\n", i, pools[i].size());
+  }
+  LOG(allocTrCalls);
+  LOG(allocTrHits);
+  LOG(allocTrMiss);
+  LOG(reallocTrCalls);
+  LOG(reallocTrHits);
+  LOG(reallocTrMiss);
+  LOG(deallocTrCalls);
+}
+
+Transition* allocateTransitions(int cap) {
+  allocTrCalls++;
+  if(!pools[cap].isEmpty()) {
+    allocTrHits++;
+    return pools[cap].pop();
+  } else {
+    allocTrMiss++;
+    return (Transition*) malloc(cap * sizeof(Transition));
+  }
+}
+
+void deallocateTransitions(Transition* tr, int cap) {
+  deallocTrCalls++;
+  pools[cap].push(tr);
+}
+
+Transition* reallocateTransitions(Transition* tr, int oldCap, int newCap) {
+  reallocTrCalls++;
+  if(!pools[newCap].isEmpty()) {
+    reallocTrHits++;
+    Transition* result = pools[newCap].pop();
+    for(int i=0; i<oldCap; i++)
+      result[i] = tr[i];
+    pools[oldCap].push(tr);
+    return result;
+  } else {
+    reallocTrMiss++;
+    return (Transition*) realloc(tr, newCap * sizeof(Transition));
+  }
+}
 
 void initTransitions(Transition* tr, int count) {
   for(int i=0; i<count; i++) {
@@ -20,7 +78,7 @@ static int initialCap = 1;
 void initState(Autom_State* ptr) {
   ptr->isFinal = 0;
   ptr->payload = NON_FINAL_PAYLOAD;
-  ptr->tr = (Transition*) malloc(initialCap * sizeof(Transition));
+  ptr->tr = allocateTransitions(initialCap);
   initTransitions(ptr->tr, initialCap);
   ptr->cap = initialCap;
   ptr->incoming = 0;
@@ -29,15 +87,23 @@ void initState(Autom_State* ptr) {
 
 Autom_State* allocateStates(int count) {
   Autom_State* result = (Autom_State*) malloc(count * sizeof(Autom_State));
-  for(int i=0; i<count; i++)
-    initState(result + i);
+  //  for(int i=0; i<count; i++)
+    //    initState(result + i);
   return result;
+};
+
+void deallocateStates(Autom_State* ptr, int size) {
+  for(int i=0; i<size; i++) {
+    if(!ptr[i].isDeleted())
+      deallocateTransitions(ptr[i].tr, ptr[i].cap);
+  }
+  free(ptr);
 };
 
 Autom_State* reallocateStates(Autom_State* ptr, int oldSize, int newSize) {
   Autom_State* result = (Autom_State*) realloc(ptr, newSize * sizeof(Autom_State));
-  for(int i=oldSize; i<newSize; i++)
-    initState(result + i);
+  //  for(int i=oldSize; i<newSize; i++)
+    //    initState(result + i);
   return result;
 };
 
@@ -50,6 +116,14 @@ void find(const Autom_State& state, int index, int& found) {
 // ------------------------
 // ------ Autom_State -----
 // ------------------------
+
+void Autom_State::destroy() {
+  deallocateTransitions(tr, cap);
+}
+
+void Autom_State::init() {
+  initState(this);
+}
 
 void Autom_State::copyTransitions(const Autom_State& source, Autom_State* states) {
   cap = source.cap;
@@ -84,7 +158,8 @@ void Autom_State::addTr(const Transition& trans) {
     }
   }
   cap++;
-  tr = (Transition*) realloc(tr, cap * sizeof(Transition));
+  tr = reallocateTransitions(tr, cap-1, cap);
+  //  tr = (Transition*) realloc(tr, cap * sizeof(Transition));
   initTransitions(tr+1, 1);
   tr[cap-1] = trans;
 }
@@ -111,7 +186,7 @@ void Autom_State::trRemoved() {
 }
 
 void Autom_State::reset() {
-  free(tr);
+  deallocateTransitions(tr, cap);
   initState(this);
 }
 

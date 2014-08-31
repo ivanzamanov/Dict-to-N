@@ -74,9 +74,10 @@ void test1() {
   a.printDot("/tmp/temp.dot");
 }
 
+extern void printPools();
 int main(int argc, const char** argv) {
   argc = 2;
-  argv[1] = "data.txt";
+  argv[1] = "io-data.txt";
   if(argc < 2) {
     printf("No input file specified\n");
     return 1;
@@ -102,10 +103,11 @@ int main(int argc, const char** argv) {
   test2();
   test3();
   doWork(data, size);
+  printPools();
 }
 
 inline bool isWhitespace(char c) {
-  return c == 0 || c == '\n' || c == ' ';
+  return c == 0 || c == '\n' || c == ' ' || c == '\t';
 }
 
 void readStrings(char* data, int size, StringVector& vec) {

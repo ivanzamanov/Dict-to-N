@@ -31,6 +31,8 @@ struct Autom_State {
   bool isFinal;
   unsigned int payload;
 
+  void init();
+  void destroy();
   bool isDeleted();
   int transitionCount() const;
   void copyTransitions(const Autom_State& source, Autom_State* states);
