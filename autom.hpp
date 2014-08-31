@@ -57,6 +57,8 @@ public:
   void checkMinimal();
   void printStats();
   int getSize() const;
+  int getStateCount() const;
+  int getTransitionCount() const;
 
 private:
   int cap;

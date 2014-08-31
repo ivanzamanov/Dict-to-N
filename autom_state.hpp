@@ -26,10 +26,9 @@ struct Autom_State {
   Transition* tr;
   int incoming;
   short cap;
-
   short outgoing;
-  bool isFinal;
   unsigned int payload;
+  bool isFinal;
 
   void init();
   void destroy();

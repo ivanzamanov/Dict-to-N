@@ -16,23 +16,36 @@ Autom::~Autom() {
   delete equivs;
 };
 
+int Autom::getStateCount() const {
+  return last + 1 - deleted.size();
+}
+
+int Autom::getTransitionCount() const {
+  int result = 0;
+  for(int i=0; i<=last; i++) {
+    if(!states[i].isDeleted()) {
+      TransitionIterator it(states[i]);
+      while(it.hasNext()) {
+	it.next();
+	result++;
+      }
+    }
+  }
+  return result;
+}
+
 void Autom::expandCapacity() {
   int newSize = cap * 1.6;
   states = reallocateStates(states, cap, newSize);
   cap = newSize;
 };
 
-static int stateCount = 0;
 int Autom::newState() {
   int state;
   if(deleted.isEmpty()) {
     if(last == cap - 1)
       expandCapacity();
     state = ++last;
-
-    stateCount++;
-    if(stateCount % 100000 == 0)
-      printf("States: %d\n", stateCount);
   } else {
     state = deleted.pop();
   }
@@ -83,11 +96,14 @@ void Autom::removeTr(int src, unsigned int c) {
 int Autom::get(const char* const w) const {
   const char* str = w;
   int state = 0;
+  int output = 0;
   while(state != -1 && *str) {
-    state = getTr(state, *str).target;
+    Transition tr = getTr(state, *str);
+    state = tr.target;
+    output += tr.payload;
     str++;
   }
-  return state != -1 && states[state].isFinal;
+  return (state != -1 && states[state].isFinal) * output;
 }
 
 int Autom::findEquiv(int state) {

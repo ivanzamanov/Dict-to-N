@@ -12,33 +12,46 @@
 
 #include"autom.hpp"
 
+extern void printPools();
 typedef std::vector<char*> StringVector;
 void readStrings(char* data, int size, StringVector& vec);
+
 void doWork(char* data, int size) {
   Autom a;
   StringVector strings;
   readStrings(data, size, strings);
   StringVector::iterator it = strings.begin();
   int count = 0;
+  int progress = 0;
+  int total = strings.size() / 2;
+  printf("Progress: %2d%%", progress);
+  fflush(stdout);
   while(it != strings.end()) {
-    count++;
     const char* key = *it;
     it++;
     const char* valueStr = *it;
     int value = atoi(valueStr);
     a.add(key, value);
     it++;
-    if(count % 1000 == 0)
-      printf("Words: %d\n", count);
+
+    count++;
+    int oldProgress = progress;
+    progress = ((double)count / (double)total) * 100;
+    if(progress != oldProgress) {
+      printf("\rProgress: %2d%%", progress);
+      fflush(stdout);
+    }
   }
-  printf("Processed %d words\n", count);
+  printf("\nProcessed %d words\n", count);
+  printf("Total states %d\n", a.getStateCount());
+  printf("Total transitions %d\n", a.getTransitionCount());
+  //  printPools();
   delete[] data;
   while(!strings.empty()) {
     char* str = strings.back();
     strings.pop_back();
     delete[] str;
   }
-  a.printStats();
 }
 
 void test3() {
@@ -74,7 +87,6 @@ void test1() {
   a.printDot("/tmp/temp.dot");
 }
 
-extern void printPools();
 int main(int argc, const char** argv) {
   argc = 2;
   argv[1] = "io-data.txt";
@@ -103,7 +115,6 @@ int main(int argc, const char** argv) {
   test2();
   test3();
   doWork(data, size);
-  printPools();
 }
 
 inline bool isWhitespace(char c) {

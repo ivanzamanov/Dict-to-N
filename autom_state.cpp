@@ -5,22 +5,29 @@
 #include"autom_state.hpp"
 
 #define MAX_TR 256
+#ifdef DEBUG
 #define LOG(var)				\
   printf(#var);					\
   printf(" = %d", var);				\
   printf("\n");
+#define IFDEBUG(stmt) stmt
+#else
+#define LOG(var)
+#define IFDEBUG(stmt)
+#endif
 
 typedef Stack<Transition*> TrPool;
 static TrPool pools[MAX_TR];
-static int allocTrCalls = 0;
-static int allocTrHits = 0;
-static int allocTrMiss = 0;
 
-static int reallocTrCalls = 0;
-static int reallocTrHits = 0;
-static int reallocTrMiss = 0;
+IFDEBUG(static int allocTrCalls = 0);
+IFDEBUG(static int allocTrHits = 0);
+IFDEBUG(static int allocTrMiss = 0);
 
-static int deallocTrCalls = 0;
+IFDEBUG(static int reallocTrCalls = 0);
+IFDEBUG(static int reallocTrHits = 0);
+IFDEBUG(static int reallocTrMiss = 0);
+
+IFDEBUG(static int deallocTrCalls = 0);
 
 void printPools() {
   for(int i=0; i<MAX_TR; i++) {
@@ -37,32 +44,32 @@ void printPools() {
 }
 
 Transition* allocateTransitions(int cap) {
-  allocTrCalls++;
+  IFDEBUG(allocTrCalls++);
   if(!pools[cap].isEmpty()) {
-    allocTrHits++;
+    IFDEBUG(allocTrHits++);
     return pools[cap].pop();
   } else {
-    allocTrMiss++;
+    IFDEBUG(allocTrMiss++);
     return (Transition*) malloc(cap * sizeof(Transition));
   }
 }
 
 void deallocateTransitions(Transition* tr, int cap) {
-  deallocTrCalls++;
+  IFDEBUG(deallocTrCalls++);
   pools[cap].push(tr);
 }
 
 Transition* reallocateTransitions(Transition* tr, int oldCap, int newCap) {
-  reallocTrCalls++;
+  IFDEBUG(reallocTrCalls++);
   if(!pools[newCap].isEmpty()) {
-    reallocTrHits++;
+    IFDEBUG(reallocTrHits++);
     Transition* result = pools[newCap].pop();
     for(int i=0; i<oldCap; i++)
       result[i] = tr[i];
     pools[oldCap].push(tr);
     return result;
   } else {
-    reallocTrMiss++;
+    IFDEBUG(reallocTrMiss++);
     return (Transition*) realloc(tr, newCap * sizeof(Transition));
   }
 }
@@ -127,7 +134,9 @@ void Autom_State::init() {
 
 void Autom_State::copyTransitions(const Autom_State& source, Autom_State* states) {
   cap = source.cap;
-  tr = (Transition*) realloc(tr, cap * sizeof(Transition));
+  deallocateTransitions(tr, cap);
+  tr = allocateTransitions(cap);
+  //  tr = (Transition*) realloc(tr, cap * sizeof(Transition));
   memcpy(tr, source.tr, cap * sizeof(Transition));
   for(int i = 0; i<cap; i++) {
     int copyDest = tr[i].target;
