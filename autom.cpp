@@ -35,7 +35,7 @@ int Autom::getTransitionCount() const {
 }
 
 void Autom::expandCapacity() {
-  int newSize = cap * 1.2;
+  int newSize = cap * 1.6;
   states = alloc.reallocateStates(states, cap, newSize);
   cap = newSize;
 };
