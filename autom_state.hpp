@@ -4,6 +4,17 @@
 #define __AUTOM_STATE_H__
 
 #define NON_FINAL_PAYLOAD INT_MAX
+#define MAX_TR 256
+#ifdef DEBUG
+#define LOG(var)				\
+  printf(#var);					\
+  printf(" = %d", var);				\
+  printf("\n");
+#define IFDEBUG(stmt) stmt
+#else
+#define LOG(var)
+#define IFDEBUG(stmt)
+#endif
 
 struct AutomAllocator;
 struct Transition;
@@ -62,7 +73,16 @@ private:
   int nextIndex;
 };
 
+struct AllocEntry {
+  AllocEntry(Transition* ptr, int ind):
+    ptr(ptr), next(ind) { };
+  Transition* ptr;
+  int next;
+};
+
 struct AutomAllocator {
+  AutomAllocator();
+  ~AutomAllocator();
   Autom_State* allocateStates(int count);
   void deallocateStates(Autom_State* ptr, int size);
   Autom_State* reallocateStates(Autom_State* ptr, int oldSize, int newSize);
@@ -72,6 +92,13 @@ struct AutomAllocator {
   Transition* allocateTransitions(int cap);
   void deallocateTransitions(Transition* ptr, int size);
   Transition* reallocateTransitions(Transition* ptr, int oldCap, int newCap);
+
+  void printPools();
+
+  typedef Stack<Transition*> TrPool;
+  TrPool pools[MAX_TR];
+  typedef Stack<AllocEntry> AllocPool;
+  AllocPool allocPool;
 };
 
 #endif

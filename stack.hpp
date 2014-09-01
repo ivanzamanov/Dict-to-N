@@ -14,7 +14,7 @@ public:
 
   void push(T el);
   T pop();
-  T peek() const;
+  T& peek() const;
   bool isEmpty() const;
   bool contains(T el) const;
   int size() const;
@@ -75,7 +75,7 @@ T Stack<T>::pop() {
 }
 
 template<class T>
-T Stack<T>::peek() const {
+T& Stack<T>::peek() const {
   return data[n];
 }
 

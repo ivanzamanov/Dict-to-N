@@ -4,24 +4,9 @@
 #include"stack.hpp"
 #include"autom_state.hpp"
 
-#define MAX_TR 256
-#ifdef DEBUG
-#define LOG(var)				\
-  printf(#var);					\
-  printf(" = %d", var);				\
-  printf("\n");
-#define IFDEBUG(stmt) stmt
-#else
-#define LOG(var)
-#define IFDEBUG(stmt)
-#endif
-
 // -------------------------------
 // --- Allocation and Pooling ----
 // -------------------------------
-
-typedef Stack<Transition*> TrPool;
-static TrPool pools[MAX_TR];
 
 IFDEBUG(static int allocTrCalls = 0);
 IFDEBUG(static int allocTrHits = 0);
@@ -33,7 +18,20 @@ IFDEBUG(static int reallocTrMiss = 0);
 
 IFDEBUG(static int deallocTrCalls = 0);
 
-void printPools() {
+#define BLOCK_SIZE 1024 * 1024
+
+AutomAllocator::AutomAllocator() {
+  Transition* newPool = (Transition*) malloc(BLOCK_SIZE * sizeof(Transition));
+  allocPool.push(AllocEntry(newPool, 0));
+}
+
+AutomAllocator::~AutomAllocator() {
+  while(!allocPool.isEmpty()) {
+    free(allocPool.pop().ptr);
+  }
+}
+
+void AutomAllocator::printPools() {
   for(int i=0; i<MAX_TR; i++) {
     if(!pools[i].isEmpty())
       printf("Pool %d = %d\n", i, pools[i].size());
@@ -49,13 +47,24 @@ void printPools() {
 
 Transition* AutomAllocator::allocateTransitions(int cap) {
   IFDEBUG(allocTrCalls++);
+  Transition* result;
   if(!pools[cap].isEmpty()) {
     IFDEBUG(allocTrHits++);
-    return pools[cap].pop();
+    result = pools[cap].pop();
   } else {
     IFDEBUG(allocTrMiss++);
-    return (Transition*) malloc(cap * sizeof(Transition));
+    AllocEntry& e = allocPool.peek();
+    if(e.next + cap < BLOCK_SIZE) {
+      result = (e.ptr + e.next);
+      e.next += cap;
+    } else {
+      Transition* newPool = (Transition*) malloc(BLOCK_SIZE * sizeof(Transition));
+      allocPool.push(AllocEntry(newPool, cap));
+      pools[BLOCK_SIZE - e.next].push(e.ptr);
+      result = newPool;
+    }
   }
+  return result;
 }
 
 void AutomAllocator::deallocateTransitions(Transition* tr, int cap) {
@@ -65,17 +74,20 @@ void AutomAllocator::deallocateTransitions(Transition* tr, int cap) {
 
 Transition* AutomAllocator::reallocateTransitions(Transition* tr, int oldCap, int newCap) {
   IFDEBUG(reallocTrCalls++);
+  Transition* result;
   if(!pools[newCap].isEmpty()) {
     IFDEBUG(reallocTrHits++);
-    Transition* result = pools[newCap].pop();
-    for(int i=0; i<oldCap; i++)
-      result[i] = tr[i];
-    pools[oldCap].push(tr);
-    return result;
+    result = pools[newCap].pop();
+    deallocateTransitions(tr, oldCap);
   } else {
     IFDEBUG(reallocTrMiss++);
-    return (Transition*) realloc(tr, newCap * sizeof(Transition));
+    // result = (Transition*) realloc(tr, newCap * sizeof(Transition));
+    result = allocateTransitions(newCap);
   }
+  // TODO: use memcpy
+  for(int i=0; i<oldCap; i++)
+    result[i] = tr[i];
+  return result;
 }
 
 void initTransitions(Transition* tr, int count) {
