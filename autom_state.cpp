@@ -16,6 +16,10 @@
 #define IFDEBUG(stmt)
 #endif
 
+// -------------------------------
+// --- Allocation and Pooling ----
+// -------------------------------
+
 typedef Stack<Transition*> TrPool;
 static TrPool pools[MAX_TR];
 
@@ -43,7 +47,7 @@ void printPools() {
   LOG(deallocTrCalls);
 }
 
-Transition* allocateTransitions(int cap) {
+Transition* AutomAllocator::allocateTransitions(int cap) {
   IFDEBUG(allocTrCalls++);
   if(!pools[cap].isEmpty()) {
     IFDEBUG(allocTrHits++);
@@ -54,12 +58,12 @@ Transition* allocateTransitions(int cap) {
   }
 }
 
-void deallocateTransitions(Transition* tr, int cap) {
+void AutomAllocator::deallocateTransitions(Transition* tr, int cap) {
   IFDEBUG(deallocTrCalls++);
   pools[cap].push(tr);
 }
 
-Transition* reallocateTransitions(Transition* tr, int oldCap, int newCap) {
+Transition* AutomAllocator::reallocateTransitions(Transition* tr, int oldCap, int newCap) {
   IFDEBUG(reallocTrCalls++);
   if(!pools[newCap].isEmpty()) {
     IFDEBUG(reallocTrHits++);
@@ -82,24 +86,22 @@ void initTransitions(Transition* tr, int count) {
 }
 
 static int initialCap = 1;
-void initState(Autom_State* ptr) {
+void initState(AutomAllocator& alloc, Autom_State* ptr) {
   ptr->isFinal = 0;
   ptr->payload = NON_FINAL_PAYLOAD;
-  ptr->tr = allocateTransitions(initialCap);
+  ptr->tr = alloc.allocateTransitions(initialCap);
   initTransitions(ptr->tr, initialCap);
   ptr->cap = initialCap;
   ptr->incoming = 0;
   ptr->outgoing = 0;
 };
 
-Autom_State* allocateStates(int count) {
+Autom_State* AutomAllocator::allocateStates(int count) {
   Autom_State* result = (Autom_State*) malloc(count * sizeof(Autom_State));
-  //  for(int i=0; i<count; i++)
-    //    initState(result + i);
   return result;
 };
 
-void deallocateStates(Autom_State* ptr, int size) {
+void AutomAllocator::deallocateStates(Autom_State* ptr, int size) {
   for(int i=0; i<size; i++) {
     if(!ptr[i].isDeleted())
       deallocateTransitions(ptr[i].tr, ptr[i].cap);
@@ -107,12 +109,27 @@ void deallocateStates(Autom_State* ptr, int size) {
   free(ptr);
 };
 
-Autom_State* reallocateStates(Autom_State* ptr, int oldSize, int newSize) {
+Autom_State* AutomAllocator::reallocateStates(Autom_State* ptr, int oldSize, int newSize) {
   Autom_State* result = (Autom_State*) realloc(ptr, newSize * sizeof(Autom_State));
-  //  for(int i=oldSize; i<newSize; i++)
-    //    initState(result + i);
   return result;
 };
+
+void AutomAllocator::copyTransitions(const Autom_State& source, Autom_State& dest, Autom_State* states) {
+  dest.cap = source.cap;
+  deallocateTransitions(dest.tr, dest.cap);
+  dest.tr = allocateTransitions(dest.cap);
+  memcpy(dest.tr, source.tr, dest.cap * sizeof(Transition));
+  for(int i = 0; i<dest.cap; i++) {
+    int copyDest = dest.tr[i].target;
+    if(copyDest >= 0)
+      states[copyDest].trAdded();
+  }
+  dest.outgoing = source.outgoing;
+}
+
+// ------------------------
+// --------- MISC ---------
+// ------------------------
 
 void find(const Autom_State& state, int index, int& found) {
   while(index < state.transitionCount() && state.tr[index].c < 0)
@@ -124,26 +141,12 @@ void find(const Autom_State& state, int index, int& found) {
 // ------ Autom_State -----
 // ------------------------
 
-void Autom_State::destroy() {
-  deallocateTransitions(tr, cap);
+void Autom_State::destroy(AutomAllocator& alloc) {
+  alloc.deallocateTransitions(tr, cap);
 }
 
-void Autom_State::init() {
-  initState(this);
-}
-
-void Autom_State::copyTransitions(const Autom_State& source, Autom_State* states) {
-  cap = source.cap;
-  deallocateTransitions(tr, cap);
-  tr = allocateTransitions(cap);
-  //  tr = (Transition*) realloc(tr, cap * sizeof(Transition));
-  memcpy(tr, source.tr, cap * sizeof(Transition));
-  for(int i = 0; i<cap; i++) {
-    int copyDest = tr[i].target;
-    if(copyDest >= 0)
-      states[copyDest].trAdded();
-  }
-  outgoing = source.outgoing;
+void Autom_State::init(AutomAllocator& alloc) {
+  initState(alloc, this);
 }
 
 Transition Autom_State::getTr(unsigned int c) const {
@@ -155,7 +158,7 @@ Transition Autom_State::getTr(unsigned int c) const {
   return Transition(-1);
 }
 
-void Autom_State::addTr(const Transition& trans) {
+void Autom_State::addTr(AutomAllocator& alloc, const Transition& trans) {
   if(trans.target == -1)// If this is a delete
     outgoing--;
   for(int i=0; i<cap; i++) {
@@ -167,7 +170,7 @@ void Autom_State::addTr(const Transition& trans) {
     }
   }
   cap++;
-  tr = reallocateTransitions(tr, cap-1, cap);
+  tr = alloc.reallocateTransitions(tr, cap-1, cap);
   //  tr = (Transition*) realloc(tr, cap * sizeof(Transition));
   initTransitions(tr+1, 1);
   tr[cap-1] = trans;
@@ -194,9 +197,9 @@ void Autom_State::trRemoved() {
   incoming--;
 }
 
-void Autom_State::reset() {
-  deallocateTransitions(tr, cap);
-  initState(this);
+void Autom_State::reset(AutomAllocator& alloc) {
+  alloc.deallocateTransitions(tr, cap);
+  initState(alloc, this);
 }
 
 bool Autom_State::isDeleted() {

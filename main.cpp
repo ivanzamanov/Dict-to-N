@@ -114,7 +114,7 @@ int main(int argc, const char** argv) {
   test1();
   test2();
   test3();
-  doWork(data, size);
+  //  doWork(data, size);
 }
 
 inline bool isWhitespace(char c) {

@@ -67,6 +67,7 @@ private:
   IntStack deleted;
   hash* equivs;
   int size;
+  AutomAllocator alloc;
 
   inline int clone(int src, Transition& tr);
   inline void expandCapacity();

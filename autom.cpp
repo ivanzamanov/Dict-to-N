@@ -5,14 +5,14 @@
 #include"dot.hpp"
 
 Autom::Autom():cap(4), last(0), size(0) {
-  states = allocateStates(cap);
-  states[0].init();
+  states = alloc.allocateStates(cap);
+  states[0].init(alloc);
   states[0].incoming = 1;
   equivs = new hash(*this);
 };
 
 Autom::~Autom() {
-  deallocateStates(states, size);
+  alloc.deallocateStates(states, size);
   delete equivs;
 };
 
@@ -35,8 +35,8 @@ int Autom::getTransitionCount() const {
 }
 
 void Autom::expandCapacity() {
-  int newSize = cap * 1.6;
-  states = reallocateStates(states, cap, newSize);
+  int newSize = cap * 1.2;
+  states = alloc.reallocateStates(states, cap, newSize);
   cap = newSize;
 };
 
@@ -49,7 +49,7 @@ int Autom::newState() {
   } else {
     state = deleted.pop();
   }
-  states[state].init();
+  states[state].init(alloc);
   return state;
 };
 
@@ -58,7 +58,7 @@ bool Autom::equalStates(int s1, int s2) const {
 }
 
 void Autom::delState(int s) {
-  states[s].destroy();
+  states[s].destroy(alloc);
   deleted.push(s);
   TransitionIterator it(states[s]);
   while(it.hasNext()) {
@@ -71,7 +71,7 @@ void Autom::delState(int s) {
 }
 
 void Autom::addTr(int src, const Transition& tr, bool isReplace = false) {
-  states[src].addTr(tr);
+  states[src].addTr(alloc, tr);
   if(!isReplace)
     states[tr.target].trAdded();
 };
@@ -134,7 +134,8 @@ int Autom::clone(int src, Transition& tr) {
   } else {
     result = newState();
     Autom_State& resultState = states[result];
-    resultState.copyTransitions(oldDestState, states);
+    alloc.copyTransitions(oldDestState, resultState, states);
+
     resultState.isFinal = oldDestState.isFinal;
     resultState.outgoing = oldDestState.outgoing;
     resultState.payload = oldDestState.payload;
