@@ -109,6 +109,9 @@ int Autom::get(const char* const w) const {
 int Autom::findEquiv(int state) {
   int h = states[state].getHash();
   int result = equivs->get(state, h);
+  if(result != equivs->getSlow(state)) {
+    return result;
+  }
   return result;
 }
 

@@ -89,6 +89,18 @@ int hash::add(int key, int hashCode) {
   return e->key;
 }
 
+int hash::getSlow(int key) const {
+  for(int i=0; i<cap; i++) {
+    entry* e = table[i];
+    while(e != 0) {
+      if(e->key == key || automaton.equalStates(e->key, key))
+	return true;
+      e = e->next;
+    }
+  }
+  return false;
+}
+
 int hash::get(int key, int hashCode) const {
   entry *e = findInTable(key, hashCode, table, cap, automaton);
 
@@ -132,8 +144,9 @@ int hash::remove(const int key, int hashCode) {
 
 void hash::print() {
   for(int i=0; i<cap; i++) {
-    printf("%d: ", i);
     entry* e = table[i];
+    if(e == 0)
+      continue;
     while(e != 0) {
       printf("{k = %d, h = %d} ", e->key, e->hash);
       e = e->next;

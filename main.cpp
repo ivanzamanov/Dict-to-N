@@ -46,6 +46,7 @@ void doWork(char* data, int size) {
   printf("Total states %d\n", a.getStateCount());
   printf("Total transitions %d\n", a.getTransitionCount());
   //  printPools();
+  a.printEquivs();
   delete[] data;
   while(!strings.empty()) {
     char* str = strings.back();
@@ -89,7 +90,6 @@ void test1() {
 
 int main(int argc, const char** argv) {
   argc = 2;
-  argv[1] = "io-data.txt";
   if(argc < 2) {
     printf("No input file specified\n");
     return 1;
@@ -117,7 +117,7 @@ int main(int argc, const char** argv) {
   doWork(data, size);
 }
 
-inline bool isWhitespace(char c) {
+bool isWhitespace(char c) {
   return c == 0 || c == '\n' || c == ' ' || c == '\t';
 }
 

@@ -14,6 +14,7 @@ struct hash {
   int add(const int key, int hashCode);
   int get(const int key, int hashCode) const;
   int remove(const int key, int hashCode);
+  int getSlow(int key) const;
 
   void print();
 
@@ -69,22 +70,22 @@ private:
   int size;
   AutomAllocator alloc;
 
-  inline int clone(int src, Transition& tr);
-  inline void expandCapacity();
-  inline int newState();
-  inline void delState(int s);
-  inline void addTr(int src, const Transition& tr, bool isReplace);
-  inline Transition getTr(int src, unsigned int c) const;
-  inline void removeTr(int src, unsigned int c);
+  int clone(int src, Transition& tr);
+  void expandCapacity();
+  int newState();
+  void delState(int s);
+  void addTr(int src, const Transition& tr, bool isReplace);
+  Transition getTr(int src, unsigned int c) const;
+  void removeTr(int src, unsigned int c);
 
-  inline void expandForAdd(TrvStack& cloned, const char* &str, int value);
-  inline void expandForRemove(TrvStack& cloned, const char* &str);
-  inline void reduceForAdd(TrvStack& cloned, const char* &str);
-  inline void reduceForRemove(TrvStack& cloned, const char* &str);
+  void expandForAdd(TrvStack& cloned, const char* &str, int value);
+  void expandForRemove(TrvStack& cloned, const char* &str);
+  void reduceForAdd(TrvStack& cloned, const char* &str);
+  void reduceForRemove(TrvStack& cloned, const char* &str);
 
-  inline int findEquiv(int state);
-  inline void addEquiv(int state);
-  inline void removeEquiv(int state);
+  int findEquiv(int state);
+  void addEquiv(int state);
+  void removeEquiv(int state);
   void printHelper(int state, Stack<char>& stack);
 };
 

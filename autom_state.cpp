@@ -223,23 +223,22 @@ int Autom_State::getHash() const {
   TransitionIterator it(*this);
   while(it.hasNext()) {
     Transition tr = it.next();
-    result = (result + tr.target + tr.c + tr.payload) * outgoing;
+    result = (result + tr.target + tr.c) * outgoing;
   }
   return result < 0 ? -result : result;
 }
 
 bool Autom_State::operator==(const Autom_State& other) const {
   if(isFinal != other.isFinal || outgoing != other.outgoing || payload != other.payload)
-    return 0;
-  TransitionIterator it1(*this);
-  TransitionIterator it2(other);
-  while(it1.hasNext() && it2.hasNext()) {
-    Transition tr1 = it1.next();
-    Transition tr2 = it2.next();
+    return false;
+  TransitionIterator it(*this);
+  while(it.hasNext()) {
+    Transition tr1 = it.next();
+    Transition tr2 = other.getTr(tr1.c);
     if(tr1.c != tr2.c || tr1.target != tr2.target || tr1.payload != tr2.payload)
       return false;
   }
-  return it1.hasNext() == it2.hasNext();
+  return true;
 }
 
 // -------------------------------
