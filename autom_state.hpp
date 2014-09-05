@@ -55,7 +55,6 @@ struct Autom_State {
   Transition getTr(unsigned int c) const;
   void addTr(AutomAllocator& alloc, const Transition& trans);
   void removeTr(const Transition& trans);
-  void reset(AutomAllocator& alloc);
   int getHash() const;
   bool operator==(const Autom_State& other) const;
 };

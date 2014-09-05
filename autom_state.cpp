@@ -81,7 +81,6 @@ Transition* AutomAllocator::reallocateTransitions(Transition* tr, int oldCap, in
     deallocateTransitions(tr, oldCap);
   } else {
     IFDEBUG(reallocTrMiss++);
-    // result = (Transition*) realloc(tr, newCap * sizeof(Transition));
     result = allocateTransitions(newCap);
   }
   // TODO: use memcpy
@@ -173,19 +172,39 @@ Transition Autom_State::getTr(unsigned int c) const {
 void Autom_State::addTr(AutomAllocator& alloc, const Transition& trans) {
   if(trans.target == -1)// If this is a delete
     outgoing--;
-  for(int i=0; i<cap; i++) {
-    if(tr[i].c == trans.c || tr[i].c == -1) {
-      if(tr[i].target == -1) // If this is not a replace
-	outgoing++;
-      tr[i] = trans;
-      return;
-    }
+  int firstFree = -1;
+  int found = -1;
+  for(int i=0; i < cap && found == -1; i++) {
+    found =
+      (found == -1 && tr[i].c == trans.c) * i +
+      (found != -1) * found +
+      (found == -1 && tr[i].c != trans.c) * -1;
+
+    firstFree = 
+      (firstFree == -1 && tr[i].c == -1) * i + 
+      (firstFree != -1) * firstFree + 
+      (firstFree == -1 && tr[i].c != -1) * -1;
+    // if(tr[i].c == trans.c) {
+    //   if(tr[i].target == -1) // If this is not a replace
+    // 	outgoing++;
+    //   tr[i] = trans;
+    //   return;
+    // }
   }
-  cap++;
-  tr = alloc.reallocateTransitions(tr, cap-1, cap);
-  //  tr = (Transition*) realloc(tr, cap * sizeof(Transition));
-  initTransitions(tr+1, 1);
-  tr[cap-1] = trans;
+  if(found != -1) {
+    tr[found] = trans;
+  } else {
+    if(firstFree == -1) {
+      cap++;
+      tr = alloc.reallocateTransitions(tr, cap-1, cap);
+      //  tr = (Transition*) realloc(tr, cap * sizeof(Transition));
+      initTransitions(tr+1, 1);
+      tr[cap-1] = trans;
+    } else {
+      tr[firstFree] = trans;
+    }
+    outgoing++;
+  }
 }
 
 void Autom_State::removeTr(const Transition& trans) {
@@ -207,11 +226,6 @@ void Autom_State::trAdded() {
 
 void Autom_State::trRemoved() {
   incoming--;
-}
-
-void Autom_State::reset(AutomAllocator& alloc) {
-  alloc.deallocateTransitions(tr, cap);
-  initState(alloc, this);
 }
 
 bool Autom_State::isDeleted() {

@@ -46,7 +46,6 @@ void doWork(char* data, int size) {
   printf("Total states %d\n", a.getStateCount());
   printf("Total transitions %d\n", a.getTransitionCount());
   //  printPools();
-  a.printEquivs();
   delete[] data;
   while(!strings.empty()) {
     char* str = strings.back();

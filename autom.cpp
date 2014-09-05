@@ -117,12 +117,19 @@ int Autom::findEquiv(int state) {
 
 void Autom::addEquiv(int state) {
   int h = states[state].getHash();
+  if(equivs->getSlow(state) == state) {
+    printf("Existing on add %d\n", state);
+  }
+  printf("Added %d hash %d\n", state, h);
   equivs->add(state, h);
 }
 
 void Autom::removeEquiv(int state) {
   int h = states[state].getHash();
   equivs->remove(state, h);
+  printf("Removed %d, hash %d\n", state, h);
+  if(equivs->getSlow(state) == state)
+    printf("Failed on remove: %d\n", state);
 }
 
 // clone the destination for the given transition
@@ -131,8 +138,8 @@ int Autom::clone(int src, Transition& tr) {
   Autom_State& oldDestState = states[oldDest];
   int result;
   if(oldDestState.incoming == 1) {
-    addTr(src, tr);
-    oldDestState.incoming--;
+    addTr(src, tr, true);
+    //    oldDestState.incoming--;
     result = oldDest;
   } else {
     result = newState();

@@ -93,12 +93,12 @@ int hash::getSlow(int key) const {
   for(int i=0; i<cap; i++) {
     entry* e = table[i];
     while(e != 0) {
-      if(e->key == key || automaton.equalStates(e->key, key))
-	return true;
+      if(e->key == key)
+	return e->key;
       e = e->next;
     }
   }
-  return false;
+  return -1;
 }
 
 int hash::get(int key, int hashCode) const {
@@ -115,10 +115,10 @@ int hash::remove(const int key, int hashCode) {
   entry *next = table[index];
   if(next == 0)
     return -1;
-  if(next != 0
-     && next->hash == hashCode
-     && next->key == key
-     && automaton.equalStates(next->key, key)) {
+  if(next != 0 &&
+     next->hash == hashCode &&
+     next->key == key &&
+     automaton.equalStates(next->key, key)) {
     table[index] = next->next;
     delete next;
     return key;
@@ -126,10 +126,13 @@ int hash::remove(const int key, int hashCode) {
 
   entry *prev = next;
   next = next->next;
-  while(next != 0
-	&& next->hash != hashCode
-	&& next->key != key
-	&& !automaton.equalStates(next->key, key)) {
+  while(next != 0 &&
+	(
+	 next->hash != hashCode ||
+	 next->key != key ||
+	 !automaton.equalStates(next->key, key)
+	 )
+	) {
     prev = next;
     next = next->next;
   }
