@@ -60,7 +60,7 @@ Transition* AutomAllocator::allocateTransitions(int cap) {
     } else {
       Transition* newPool = (Transition*) malloc(BLOCK_SIZE * sizeof(Transition));
       allocPool.push(AllocEntry(newPool, cap));
-      pools[BLOCK_SIZE - e.next].push(e.ptr);
+      pools[BLOCK_SIZE - e.next + 1].push(e.ptr);
       result = newPool;
     }
   }
@@ -78,11 +78,11 @@ Transition* AutomAllocator::reallocateTransitions(Transition* tr, int oldCap, in
   if(!pools[newCap].isEmpty()) {
     IFDEBUG(reallocTrHits++);
     result = pools[newCap].pop();
-    deallocateTransitions(tr, oldCap);
   } else {
     IFDEBUG(reallocTrMiss++);
     result = allocateTransitions(newCap);
   }
+  deallocateTransitions(tr, oldCap);
   // TODO: use memcpy
   for(int i=0; i<oldCap; i++)
     result[i] = tr[i];
@@ -126,8 +126,8 @@ Autom_State* AutomAllocator::reallocateStates(Autom_State* ptr, int oldSize, int
 };
 
 void AutomAllocator::copyTransitions(const Autom_State& source, Autom_State& dest, Autom_State* states) {
-  dest.cap = source.cap;
   deallocateTransitions(dest.tr, dest.cap);
+  dest.cap = source.cap;
   dest.tr = allocateTransitions(dest.cap);
   memcpy(dest.tr, source.tr, dest.cap * sizeof(Transition));
   for(int i = 0; i<dest.cap; i++) {

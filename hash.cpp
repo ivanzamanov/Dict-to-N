@@ -7,7 +7,9 @@ static entry* findInTable(int key, int hashCode, entry** table, int cap, const A
   entry *next = table[index];
 
   while(next != 0) {
-    if(next->hash == hashCode && (next->key == key || automaton.equalStates(next->key, key))) {
+    if(next->hash == hashCode &&
+       (next->key == key
+	|| automaton.equalStates(next->key, key))) {
 	return next;
       }
       next = next->next;

@@ -29,8 +29,8 @@ struct Transition {
   Transition(int c)
     : target(-1),payload(0),c(c) { };
   int target;
-  unsigned int payload;
-  short c;
+  unsigned short payload;
+  char c;
   void operator()(int c, int target, unsigned int payload = 0) {
     this->c = c;
     this->target = target;
@@ -41,8 +41,8 @@ struct Transition {
 struct Autom_State {
   Transition* tr;
   int incoming;
-  short cap;
-  short outgoing;
+  unsigned char cap;
+  unsigned char outgoing;
   unsigned int payload;
   bool isFinal;
 
@@ -73,8 +73,8 @@ private:
 };
 
 struct AllocEntry {
-  AllocEntry(Transition* ptr, int ind):
-    ptr(ptr), next(ind) { };
+  AllocEntry(Transition* ptr, int next):
+    ptr(ptr), next(next) { };
   Transition* ptr;
   int next;
 };

@@ -109,27 +109,27 @@ int Autom::get(const char* const w) const {
 int Autom::findEquiv(int state) {
   int h = states[state].getHash();
   int result = equivs->get(state, h);
-  if(result != equivs->getSlow(state)) {
-    return result;
-  }
+  // if(result != equivs->getSlow(state)) {
+  //   return result;
+  // }
   return result;
 }
 
 void Autom::addEquiv(int state) {
   int h = states[state].getHash();
-  if(equivs->getSlow(state) == state) {
-    printf("Existing on add %d\n", state);
-  }
-  printf("Added %d hash %d\n", state, h);
+  // if(equivs->getSlow(state) == state) {
+  //   printf("Existing on add %d\n", state);
+  // }
+  // printf("Added %d hash %d\n", state, h);
   equivs->add(state, h);
 }
 
 void Autom::removeEquiv(int state) {
   int h = states[state].getHash();
   equivs->remove(state, h);
-  printf("Removed %d, hash %d\n", state, h);
-  if(equivs->getSlow(state) == state)
-    printf("Failed on remove: %d\n", state);
+  // printf("Removed %d, hash %d\n", state, h);
+  // if(equivs->getSlow(state) == state)
+  //   printf("Failed on remove: %d\n", state);
 }
 
 // clone the destination for the given transition
