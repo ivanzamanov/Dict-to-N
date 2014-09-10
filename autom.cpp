@@ -28,6 +28,15 @@ bool isDeleted(const IntStack& s, int state) {
   return false;
 }
 
+int Autom::getFinalStateCount() const {
+  int count = 0;
+  for(int i=0; i<=last; i++) {
+    if(!isDeleted(deleted, i) && states[i].isFinal)
+      count++;
+  }
+  return count;
+}
+
 int Autom::getTransitionCount() const {
   int result = 0;
   for(int i=0; i<=last; i++) {

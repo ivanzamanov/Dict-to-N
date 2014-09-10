@@ -53,8 +53,9 @@ void doWork(char* data, int size, const char* file) {
   }
   fprintf(stderr, "\nProcessed %d words\n", count);
   fprintf(stderr, "Total states %d\n", a.getStateCount());
+  fprintf(stderr, "Final states %d\n", a.getFinalStateCount());
   fprintf(stderr, "Total transitions %d\n", a.getTransitionCount());
-  a.printWords();
+  // a.printWords();
   delete[] data;
   while(!strings.empty()) {
     char* str = strings.back();
@@ -126,7 +127,7 @@ int main(int argc, const char** argv) {
 }
 
 bool isWhitespace(char c) {
-  return c == 0 || c == '\n' /*|| c == ' '*/ || c == '\t';
+  return c == 0 || c == '\n' || c == ' ' || c == '\t';
 }
 
 void readStrings(char* data, int size, StringVector& vec) {

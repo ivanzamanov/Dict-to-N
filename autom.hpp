@@ -59,6 +59,7 @@ public:
   void printStats();
   int getSize() const;
   int getStateCount() const;
+  int getFinalStateCount() const;
   int getTransitionCount() const;
 
 private:

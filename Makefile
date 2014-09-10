@@ -64,8 +64,8 @@ MY_LIBS   =
 
 # The pre-processor options used by the cpp (man cpp for more).
 #CPPFLAGS  = -g -Wall -std=c++11 #-DDEBUG=true
-CPPFLAGS  = -g -m32 -Wall -std=c++11 #-DDEBUG=true
-#CPPFLAGS = -m32 -Wall -std=c++11 -O3
+#CPPFLAGS  = -g -m32 -Wall -std=c++11 #-DDEBUG=true
+CPPFLAGS = -m32 -Wall -std=c++11 -O3
 
 # The options used in linking as well as in any direct use of ld.
 LDFLAGS   =
