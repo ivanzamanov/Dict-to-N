@@ -28,8 +28,6 @@
 dict
 
 # .dot files
+data
 *.dot
-data.txt
-million.txt
-small.txt
 *.png

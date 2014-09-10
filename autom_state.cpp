@@ -18,7 +18,7 @@ IFDEBUG(static int reallocTrMiss = 0);
 
 IFDEBUG(static int deallocTrCalls = 0);
 
-#define BLOCK_SIZE 1024 * 1024
+#define BLOCK_SIZE 256
 
 AutomAllocator::AutomAllocator() {
   Transition* newPool = (Transition*) malloc(BLOCK_SIZE * sizeof(Transition));
@@ -59,8 +59,9 @@ Transition* AutomAllocator::allocateTransitions(int cap) {
       e.next += cap;
     } else {
       Transition* newPool = (Transition*) malloc(BLOCK_SIZE * sizeof(Transition));
+      if(e.next < BLOCK_SIZE)
+	pools[BLOCK_SIZE - (e.next + 1)].push(e.ptr + e.next);
       allocPool.push(AllocEntry(newPool, cap));
-      pools[BLOCK_SIZE - e.next + 1].push(e.ptr);
       result = newPool;
     }
   }
@@ -69,6 +70,8 @@ Transition* AutomAllocator::allocateTransitions(int cap) {
 
 void AutomAllocator::deallocateTransitions(Transition* tr, int cap) {
   IFDEBUG(deallocTrCalls++);
+  for(int i=0; i<cap; i++)
+    tr[i](-1, -1);
   pools[cap].push(tr);
 }
 
@@ -82,10 +85,10 @@ Transition* AutomAllocator::reallocateTransitions(Transition* tr, int oldCap, in
     IFDEBUG(reallocTrMiss++);
     result = allocateTransitions(newCap);
   }
-  deallocateTransitions(tr, oldCap);
   // TODO: use memcpy
   for(int i=0; i<oldCap; i++)
     result[i] = tr[i];
+  deallocateTransitions(tr, oldCap);
   return result;
 }
 
@@ -98,7 +101,7 @@ void initTransitions(Transition* tr, int count) {
 
 static int initialCap = 1;
 void initState(AutomAllocator& alloc, Autom_State* ptr) {
-  ptr->isFinal = 0;
+  ptr->isFinal = false;
   ptr->payload = NON_FINAL_PAYLOAD;
   ptr->tr = alloc.allocateTransitions(initialCap);
   initTransitions(ptr->tr, initialCap);
@@ -154,6 +157,12 @@ void find(const Autom_State& state, int index, int& found) {
 
 void Autom_State::destroy(AutomAllocator& alloc) {
   alloc.deallocateTransitions(tr, cap);
+  tr = 0;
+  isFinal = false;
+  cap = 0;
+  outgoing = 0;
+  payload = 0;
+  incoming = 0;
 }
 
 void Autom_State::init(AutomAllocator& alloc) {
@@ -161,7 +170,7 @@ void Autom_State::init(AutomAllocator& alloc) {
 }
 
 Transition Autom_State::getTr(unsigned int c) const {
-  short sgc = c;
+  int sgc = c;
   for(int i=0; i<cap; i++) {
     if(tr[i].c == sgc)
       return tr[i];
@@ -198,7 +207,7 @@ void Autom_State::addTr(AutomAllocator& alloc, const Transition& trans) {
       cap++;
       tr = alloc.reallocateTransitions(tr, cap-1, cap);
       //  tr = (Transition*) realloc(tr, cap * sizeof(Transition));
-      initTransitions(tr+1, 1);
+      initTransitions(tr+cap-1, 1);
       tr[cap-1] = trans;
     } else {
       tr[firstFree] = trans;

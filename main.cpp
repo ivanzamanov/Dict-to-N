@@ -12,19 +12,25 @@
 
 #include"autom.hpp"
 
+#define PROGRESS
+
 extern void printPools();
 typedef std::vector<char*> StringVector;
 void readStrings(char* data, int size, StringVector& vec);
 
-void doWork(char* data, int size) {
+void doWork(char* data, int size, const char* file) {
   Autom a;
   StringVector strings;
   readStrings(data, size, strings);
   StringVector::iterator it = strings.begin();
   int count = 0;
-  int progress = 0;
+
+#ifdef PROGRESS
   int total = strings.size() / 2;
-  printf("Progress: %2d%%", progress);
+  int progress = 0;
+  fprintf(stderr, "Progress: %2d%%", progress);
+#endif
+
   fflush(stdout);
   while(it != strings.end()) {
     const char* key = *it;
@@ -33,19 +39,22 @@ void doWork(char* data, int size) {
     int value = atoi(valueStr);
     a.add(key, value);
     it++;
+    //    printf("%s %d\n", key, value);
 
     count++;
+#ifdef PROGRESS
     int oldProgress = progress;
     progress = ((double)count / (double)total) * 100;
     if(progress != oldProgress) {
-      printf("\rProgress: %2d%%", progress);
+      fprintf(stderr, "\rProgress: %2d%%", progress);
       fflush(stdout);
     }
+#endif
   }
-  printf("\nProcessed %d words\n", count);
-  printf("Total states %d\n", a.getStateCount());
-  printf("Total transitions %d\n", a.getTransitionCount());
-  //  printPools();
+  fprintf(stderr, "\nProcessed %d words\n", count);
+  fprintf(stderr, "Total states %d\n", a.getStateCount());
+  fprintf(stderr, "Total transitions %d\n", a.getTransitionCount());
+  a.printWords();
   delete[] data;
   while(!strings.empty()) {
     char* str = strings.back();
@@ -110,14 +119,14 @@ int main(int argc, const char** argv) {
   char* data = new char[size + 1];
   read(fd, data, size);
   data[size] = 0;
-  test1();
-  test2();
-  test3();
-  doWork(data, size);
+  //  test1();
+  //  test2();
+  //  test3();
+  doWork(data, size, argv[1]);
 }
 
 bool isWhitespace(char c) {
-  return c == 0 || c == '\n' || c == ' ' || c == '\t';
+  return c == 0 || c == '\n' /*|| c == ' '*/ || c == '\t';
 }
 
 void readStrings(char* data, int size, StringVector& vec) {
@@ -129,6 +138,8 @@ void readStrings(char* data, int size, StringVector& vec) {
       i++;
       ptr++;
     }
+    if(i == 0)
+      continue;
     char* str = new char[i+1];
     strncpy(str, data + offset, i+1);
     str[i] = 0;

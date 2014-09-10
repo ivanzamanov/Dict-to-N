@@ -20,10 +20,18 @@ int Autom::getStateCount() const {
   return last + 1 - deleted.size();
 }
 
+bool isDeleted(const IntStack& s, int state) {
+  for(int i=0; i<s.size(); i++) {
+    if(s.getData()[i] == state)
+      return true;
+  }
+  return false;
+}
+
 int Autom::getTransitionCount() const {
   int result = 0;
   for(int i=0; i<=last; i++) {
-    if(!states[i].isDeleted()) {
+    if(!isDeleted(deleted, i)) {
       TransitionIterator it(states[i]);
       while(it.hasNext()) {
 	it.next();
@@ -77,7 +85,7 @@ void Autom::addTr(int src, const Transition& tr, bool isReplace = false) {
 };
 
 Transition Autom::getTr(int src, unsigned int c) const {
-  if(src < 0 || src > last || states[src].isDeleted())
+  if(src < 0 || src > last)
     return Transition(-1, -1);
   Transition trans = states[src].getTr(c);
   return trans;
@@ -312,8 +320,8 @@ void Autom::reduceForRemove(TrvStack& cloned, const char* &str) {
 
 void Autom::reduceForAdd(TrvStack& cloned, const char* &str) {
   // Offset from the end of the string
-  int state;
-  int equiv;
+  int state = 0;
+  int equiv = 0;
 
   while(!cloned.isEmpty()
 	&& states[cloned.peek().targetState].outgoing == 0
@@ -389,21 +397,25 @@ int Autom::getSize() const {
 }
 
 void Autom::printWords() {
-  Stack<char> stack;
+  Stack<TrvEntry> stack;
   printHelper(0, stack);
 }
 
-void Autom::printHelper(int state, Stack<char>& stack) {
+void Autom::printHelper(int state, Stack<TrvEntry>& stack) {
   const Autom_State& st = states[state];
-  if(st.isFinal) {
-    for(int i=0; i < stack.size(); i++)
-      printf("%c", stack.getData()[i]);
+  if(st.isFinal && !isDeleted(deleted, state)) {
+    int output = 0;
+    for(int i=0; i < stack.size(); i++) {
+      printf("%c", stack.getData()[i].ch);
+      output += stack.getData()[i].output;
+    }
+    printf("\t%d", output);
     printf("\n");
   }
   TransitionIterator it(st);
   while(it.hasNext()) {
     Transition tr = it.next();
-    stack.push(tr.c);
+    stack.push(TrvEntry(tr.target,tr.c, tr.payload));
     printHelper(tr.target, stack);
     stack.pop();
   }

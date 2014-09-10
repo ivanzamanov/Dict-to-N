@@ -86,7 +86,7 @@ private:
   int findEquiv(int state);
   void addEquiv(int state);
   void removeEquiv(int state);
-  void printHelper(int state, Stack<char>& stack);
+  void printHelper(int state, Stack<TrvEntry>& stack);
 };
 
 struct entry {

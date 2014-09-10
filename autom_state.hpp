@@ -29,7 +29,7 @@ struct Transition {
   Transition(int c)
     : target(-1),payload(0),c(c) { };
   int target;
-  unsigned short payload;
+  unsigned int payload;
   char c;
   void operator()(int c, int target, unsigned int payload = 0) {
     this->c = c;
@@ -40,7 +40,7 @@ struct Transition {
 
 struct Autom_State {
   Transition* tr;
-  int incoming;
+  unsigned int incoming;
   unsigned char cap;
   unsigned char outgoing;
   unsigned int payload;
