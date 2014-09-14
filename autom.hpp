@@ -62,6 +62,8 @@ public:
   int getFinalStateCount() const;
   int getTransitionCount() const;
 
+  bool isIsomorphic(const Autom& other) const;
+
 private:
   int cap;
   int last;

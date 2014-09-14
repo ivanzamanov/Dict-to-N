@@ -45,6 +45,7 @@ struct Autom_State {
   unsigned char outgoing;
   unsigned int payload;
   bool isFinal;
+  bool deleted;
 
   void init(AutomAllocator& alloc);
   void destroy(AutomAllocator& alloc);

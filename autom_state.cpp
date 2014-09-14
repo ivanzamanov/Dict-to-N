@@ -163,10 +163,12 @@ void Autom_State::destroy(AutomAllocator& alloc) {
   outgoing = 0;
   payload = 0;
   incoming = 0;
+  deleted = true;
 }
 
 void Autom_State::init(AutomAllocator& alloc) {
   initState(alloc, this);
+  deleted = false;
 }
 
 Transition Autom_State::getTr(unsigned int c) const {

@@ -20,7 +20,8 @@ int Autom::getStateCount() const {
   return last + 1 - deleted.size();
 }
 
-bool isDeleted(const IntStack& s, int state) {
+bool isDeleted(const IntStack& s, int state, Autom_State* states) {
+  return states[state].deleted;
   for(int i=0; i<s.size(); i++) {
     if(s.getData()[i] == state)
       return true;
@@ -31,7 +32,7 @@ bool isDeleted(const IntStack& s, int state) {
 int Autom::getFinalStateCount() const {
   int count = 0;
   for(int i=0; i<=last; i++) {
-    if(!isDeleted(deleted, i) && states[i].isFinal)
+    if(!isDeleted(deleted, i, states) && states[i].isFinal)
       count++;
   }
   return count;
@@ -40,7 +41,7 @@ int Autom::getFinalStateCount() const {
 int Autom::getTransitionCount() const {
   int result = 0;
   for(int i=0; i<=last; i++) {
-    if(!isDeleted(deleted, i)) {
+    if(!isDeleted(deleted, i, states)) {
       TransitionIterator it(states[i]);
       while(it.hasNext()) {
 	it.next();
@@ -412,7 +413,7 @@ void Autom::printWords() {
 
 void Autom::printHelper(int state, Stack<TrvEntry>& stack) {
   const Autom_State& st = states[state];
-  if(st.isFinal && !isDeleted(deleted, state)) {
+  if(st.isFinal && !isDeleted(deleted, state, states)) {
     int output = 0;
     for(int i=0; i < stack.size(); i++) {
       printf("%c", stack.getData()[i].ch);
@@ -514,6 +515,27 @@ void Autom::checkMinimal() {
 
   printf("Minimal: %d\n", isMin);
   delete classes;
+}
+
+bool isoHelper(Autom_State& s1, Autom_State& s2, Autom_State* states1, Autom_State* states2) {
+  if(s1.outgoing != s2.outgoing || s1.isFinal != s2.isFinal)
+    return false;
+
+  TransitionIterator it(s1);
+  bool result = true;
+  while(it.hasNext() && result) {
+    Transition tr1 = it.next();
+    Transition tr2 = s2.getTr(tr1.c);
+    if(tr2.target < 0 || tr1.payload != tr2.payload)
+      return false;
+    result = result && isoHelper(states1[tr1.target], states2[tr2.target], states1, states2);
+  }
+  return result;
+}
+
+bool Autom::isIsomorphic(const Autom& other) const {
+  int s1 = 0, s2 = 0;
+  return isoHelper(states[s1], other.states[s2], states, other.states);
 }
 
 void Autom::printEquivs() {

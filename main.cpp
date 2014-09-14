@@ -14,14 +14,19 @@
 
 #define PROGRESS
 
+struct FileData {
+  char* data;
+  int size;
+};
+
 extern void printPools();
 typedef std::vector<char*> StringVector;
 void readStrings(char* data, int size, StringVector& vec);
 
-void doWork(char* data, int size, const char* file) {
-  Autom a;
+void processData(Autom& autom, FileData data, void (*func)(Autom&,const char*, const char*)) {
   StringVector strings;
-  readStrings(data, size, strings);
+  readStrings(data.data, data.size, strings);
+
   StringVector::iterator it = strings.begin();
   int count = 0;
 
@@ -36,10 +41,8 @@ void doWork(char* data, int size, const char* file) {
     const char* key = *it;
     it++;
     const char* valueStr = *it;
-    int value = atoi(valueStr);
-    a.add(key, value);
+    func(autom, key, valueStr);
     it++;
-    //    printf("%s %d\n", key, value);
 
     count++;
 #ifdef PROGRESS
@@ -52,16 +55,46 @@ void doWork(char* data, int size, const char* file) {
 #endif
   }
   fprintf(stderr, "\nProcessed %d words\n", count);
-  fprintf(stderr, "Total states %d\n", a.getStateCount());
-  fprintf(stderr, "Final states %d\n", a.getFinalStateCount());
-  fprintf(stderr, "Total transitions %d\n", a.getTransitionCount());
-  // a.printWords();
-  delete[] data;
+  fprintf(stderr, "Total states %d\n", autom.getStateCount());
+  fprintf(stderr, "Final states %d\n", autom.getFinalStateCount());
+  fprintf(stderr, "Total transitions %d\n", autom.getTransitionCount());
+
   while(!strings.empty()) {
     char* str = strings.back();
     strings.pop_back();
     delete[] str;
   }
+}
+
+void addFunc(Autom& autom, const char* key, const char* val) {
+  int value = atoi(val);
+  autom.add(key, value);
+}
+
+void removeFunc(Autom& autom, const char* key, const char* val) {
+  autom.remove(key);
+}
+
+void addAll(Autom& autom, FileData data) {
+  processData(autom, data, addFunc);
+}
+
+void removeAll(Autom& autom, FileData data) {
+  processData(autom, data, removeFunc);
+}
+
+void doWork(FileData all, FileData toRemove, FileData removed) {
+  Autom removedAutom;
+  Autom removeAutom;
+  fprintf(stderr, "Building all\n");
+  addAll(removedAutom, removed);
+  fprintf(stderr, "Building for remove\n");
+  addAll(removeAutom, all);
+  fprintf(stderr, "Removing\n");
+  removeAll(removeAutom, toRemove);
+  fprintf(stderr, "Comparing\n");
+  fprintf(stderr, "Isomorphic: %d\n", removedAutom.isIsomorphic(removeAutom));
+  removeAutom.printWords();
 }
 
 void test3() {
@@ -74,6 +107,7 @@ void test3() {
   a.remove("ba");
   a.remove("baa");
   a.printDot("/tmp/temp.dot");
+  fprintf(stderr, "Equal: %d\n", a.isIsomorphic(a));
 }
 
 void test2() {
@@ -83,6 +117,7 @@ void test2() {
   a.add("b", 7);
   a.add("baa", 9);
   a.printDot("/tmp/temp.dot");
+  fprintf(stderr, "Equal: %d\n", a.isIsomorphic(a));
 }
 
 void test1() {
@@ -95,35 +130,52 @@ void test1() {
   a.remove("ba");
   //  a.remove("baa");
   a.printDot("/tmp/temp.dot");
+  fprintf(stderr, "Equal: %d\n", a.isIsomorphic(a));
 }
 
-int main(int argc, const char** argv) {
-  argc = 2;
-  if(argc < 2) {
-    printf("No input file specified\n");
-    return 1;
-  }
-
-  int fd = open(argv[1], O_RDONLY);
-  if(fd < 0) {
-    printf("Cannot open file %s\n", argv[1]);
-    return 1;
-  }
-
+bool readData(FileData& dest, const char* file) {
+  int fd = open(file, O_RDONLY);
   struct stat fileStat;
-  if(fstat(fd, &fileStat) < 0) {
-    printf("Cannot stat file %s\n", argv[1]);
-    return 1;
-  }
-  long int size = fileStat.st_size;
 
+  if(fd < 0) {
+    fprintf(stderr, "Cannot open file %s\n", file);
+    return false;
+  }
+
+  if(fstat(fd, &fileStat) < 0) {
+    fprintf(stderr, "Cannot stat file %s\n", file);
+    return false;
+  }
+
+  long int size = fileStat.st_size;
   char* data = new char[size + 1];
   read(fd, data, size);
   data[size] = 0;
-  //  test1();
-  //  test2();
-  //  test3();
-  doWork(data, size, argv[1]);
+  dest.data = data;
+  dest.size = size;
+  return true;
+}
+
+int main(int argc, const char** argv) {
+  argc = 4;
+  if(argc < 4) {
+    fprintf(stderr, "Not enough input files specified\n");
+    return 1;
+  }
+  FileData all, toRemove, removed;
+  bool success;
+  success = readData(all, argv[1]);
+  success = success && readData(toRemove, argv[2]);
+  success = success && readData(removed, argv[3]);
+  if(success) {
+    // test1();
+    // test2();
+    // test3();
+    doWork(all, toRemove, removed);
+    delete all.data;
+    delete toRemove.data;
+    delete removed.data;
+  }
 }
 
 bool isWhitespace(char c) {
@@ -153,7 +205,7 @@ void readStrings(char* data, int size, StringVector& vec) {
 void printStrings(StringVector& vec) {
   StringVector::iterator it = vec.begin();
   while(it != vec.end()) {
-    printf("%s\n", *it);
+    fprintf(stderr, "%s\n", *it);
     ++it;
   }
 }
