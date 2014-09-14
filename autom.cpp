@@ -76,7 +76,6 @@ bool Autom::equalStates(int s1, int s2) const {
 }
 
 void Autom::delState(int s) {
-  states[s].destroy(alloc);
   deleted.push(s);
   TransitionIterator it(states[s]);
   while(it.hasNext()) {
@@ -86,6 +85,7 @@ void Autom::delState(int s) {
     if(states[dest].incoming == 0)
       delState(dest);
   }
+  states[s].destroy(alloc);
 }
 
 void Autom::addTr(int src, const Transition& tr, bool isReplace = false) {
@@ -240,7 +240,7 @@ void Autom::expandForRemove(TrvStack& cloned, const char* &str) {
   Transition tr(0);
 
   cloned.push(TrvEntry(state, 0, 0));
-  while(*str && (tr = getTr(state, *str)).target != -1) {
+  while(*str && (tr = getTr(state, *str)).target > 0) {
     prev = state;
     removeEquiv(prev);
     
@@ -303,13 +303,13 @@ void Autom::reduceForRemove(TrvStack& cloned, const char* &str) {
     removeTr(cloned.peek().targetState, entry.ch);
   }
 
+  int equiv;
   while(cloned.size() > 1) {
     entry = cloned.peek();
     pushBack(states, cloned, pushedBack);
     Transition tr(entry.ch, entry.targetState, sum(pushedBack, entry.output));
     addTr(cloned.peek().targetState, tr, true);
 
-    int equiv;
     if((equiv = findEquiv(entry.targetState)) <= 0)
       break;
     // Found an equivalent, add a transition
@@ -324,6 +324,8 @@ void Autom::reduceForRemove(TrvStack& cloned, const char* &str) {
   while(cloned.size() > 1) {
     entry = cloned.peek();
     pushBack(states, cloned, pushedBack);
+    Transition tr(entry.ch, entry.targetState, sum(pushedBack, entry.output));
+    addTr(cloned.peek().targetState, tr, true);
     addEquiv(entry.targetState);
   }
 }
@@ -419,7 +421,7 @@ void Autom::printHelper(int state, Stack<TrvEntry>& stack) {
       printf("%c", stack.getData()[i].ch);
       output += stack.getData()[i].output;
     }
-    printf("\t%d", output);
+    printf(" %d", output);
     printf("\n");
   }
   TransitionIterator it(st);
@@ -526,14 +528,16 @@ bool isoHelper(Autom_State& s1, Autom_State& s2, Autom_State* states1, Autom_Sta
   while(it.hasNext() && result) {
     Transition tr1 = it.next();
     Transition tr2 = s2.getTr(tr1.c);
-    if(tr2.target < 0 || tr1.payload != tr2.payload)
+    if(tr2.target <= 0 || tr1.payload != tr2.payload)
       return false;
-    result = result && isoHelper(states1[tr1.target], states2[tr2.target], states1, states2);
+    result = result & isoHelper(states1[tr1.target], states2[tr2.target], states1, states2);
   }
   return result;
 }
 
 bool Autom::isIsomorphic(const Autom& other) const {
+  if(getStateCount() != other.getStateCount())
+    return false;
   int s1 = 0, s2 = 0;
   return isoHelper(states[s1], other.states[s2], states, other.states);
 }

@@ -86,12 +86,18 @@ void removeAll(Autom& autom, FileData data) {
 void doWork(FileData all, FileData toRemove, FileData removed) {
   Autom removedAutom;
   Autom removeAutom;
-  fprintf(stderr, "Building all\n");
+  fprintf(stderr, "Building final\n");
   addAll(removedAutom, removed);
+  fprintf(stderr, "\n");
+
   fprintf(stderr, "Building for remove\n");
   addAll(removeAutom, all);
+  fprintf(stderr, "\n");
+
   fprintf(stderr, "Removing\n");
   removeAll(removeAutom, toRemove);
+  fprintf(stderr, "\n");
+
   fprintf(stderr, "Comparing\n");
   fprintf(stderr, "Isomorphic: %d\n", removedAutom.isIsomorphic(removeAutom));
   removeAutom.printWords();
